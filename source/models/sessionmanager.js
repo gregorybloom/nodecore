@@ -43,7 +43,7 @@ module.exports = {
 
 
 			if(this.timeout <= deltatime) {
-				this.dropClient(i);
+				this.removeClient(i);
 			}
 		}
 	},
@@ -63,7 +63,7 @@ module.exports = {
     delete this.clients[id];
     console.log('client session deauthed: '+id);
   },
-	dropClient: function (id) {
+	removeClient: function (id) {
 		if(typeof this.clients[id] !== "undefined") {
       	if(this.clients[id] && this.clients[id].user) {
             console.log('client session dropout: '+id);
@@ -71,9 +71,9 @@ module.exports = {
   					if(this.clients[id].user)	  delete this.clients[id].user;
 		    }
   	}
-		this.dropClientFromApps(id);
+		this.deauthClientFromApps(id);
 	},
-	dropClientFromApps: function(id) {
+	deauthClientFromApps: function(id) {
 		if(typeof this.appcontroller !== 'undefined') {
 			for(j in this.appcontroller.registeredapps) {
 				var subapp = this.appcontroller.registeredapps[j];

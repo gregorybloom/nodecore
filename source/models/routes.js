@@ -67,7 +67,7 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
     }
     else {
       console.log('client logout');
-      sessionmanager.dropClient(req.user._id);
+      sessionmanager.removeClient(req.user._id);
       req.logout();
       res.redirect('/');
     }

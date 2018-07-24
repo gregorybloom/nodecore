@@ -84,9 +84,8 @@ var ExpressChatApp = {
       if(typeof this.clients[socketID] === "undefined")       this.clients[socketID]={};
       this.clients[socketID].socket=socket;
 
-      if (typeof socket.request.user !== "undefined") {
-        this.updateClientName(socketID,socket);
-      }
+      this.updateClientName(socketID,socket);
+
       this.clients[socketID].tempname =  socketID.substring(0,8);
 
 
@@ -188,21 +187,24 @@ var ExpressChatApp = {
     },
     getClientList: function(roomname) {
       var list = [];
-      for(item in this.clients) {
-          if(typeof roomname === "string" && this.clients[item].roomname !== roomname)
+      for(socketID in this.clients) {
+          if(typeof roomname === "string" && this.clients[socketID].roomname !== roomname)
               continue;
           var client = {};
 
-          if( typeof this.clients[item].displayname !== "undefined") {
-              client.displayname=this.clients[item].displayname;
+          if( !this.clients[socketID].isauthed ) {
+            client.tempname=this.clients[socketID].tempname;
           }
-          else if(typeof this.clients[item].username !== "undefined") {
-              client.username=this.clients[item].username;
+          else if( typeof this.clients[socketID].displayname !== "undefined") {
+              client.displayname=this.clients[socketID].displayname;
           }
-          else if(typeof this.clients[item].tempname !== "undefined") {
-              client.tempname=this.clients[item].tempname;
+          else if(typeof this.clients[socketID].username !== "undefined") {
+              client.username=this.clients[socketID].username;
           }
-          if(this.clients[item].status)      client.status = this.clients[item].status;
+          else if(typeof this.clients[socketID].tempname !== "undefined") {
+              client.tempname=this.clients[socketID].tempname;
+          }
+          if(this.clients[socketID].status)      client.status = this.clients[socketID].status;
 
           list.push(client);
       }
@@ -212,13 +214,16 @@ var ExpressChatApp = {
       var client = this.clients[socketID];
       if(typeof client === "undefined" || client == null)     return;
 
+      if(!this.clients[socketID].isauthed)                return client.tempname;
       if(typeof client.displayname !== "undefined")       return client.displayname;
       else if(typeof client.username !== "undefined")     return client.username;
       else if(typeof client.tempname !== "undefined")     return client.tempname;
     },
     updateClientName: function(socketID,socket) {
-      this.clients[socketID].username = socket.request.user.username;
-      this.clients[socketID].displayname = socket.request.user.displayname;
+      if (typeof socket.request.user !== "undefined") {
+        this.clients[socketID].username = socket.request.user.username;
+        this.clients[socketID].displayname = socket.request.user.displayname;
+      }
     },
     deAuthClient: function(socketID, socket,app,io) {
       if(typeof this.clients[socketID].userid === "undefined")    return;
@@ -230,7 +235,6 @@ var ExpressChatApp = {
       if(typeof this.clients[socketID].status !== "undefined") {
         if(typeof this.clients[socketID].status.isauthed !== "undefined")      delete this.clients[socketID].status.isauthed;
       }
-      if(typeof this.clients[socketID].deauthed === "undefined")     this.clients[socketID].deauthed = true;
 
 
       if(typeof this.clients[socketID].user !== "undefined")            delete this.clients[socketID].user;
