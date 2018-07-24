@@ -6,7 +6,7 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
 
       if(req.user && req.isAuthenticated()) {
         if(sessionmanager.clients[req.user._id]) {
-          if(sessionmanager.clients[req.user._id].drop)   sessionmanager.logoutClient(req.user._id, req);
+          if(sessionmanager.clients[req.user._id].drop)        sessionmanager.logoutClient(req.user._id, req);
         }
       }
 

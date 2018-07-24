@@ -45,9 +45,6 @@ module.exports = {
 			if(this.timeout <= deltatime) {
 				this.dropClient(i);
 			}
-			else if(this.clients[i].drop) {
-				delete this.clients[i].drop;
-			}
 		}
 	},
 	addClient: function (id, user, req) {
