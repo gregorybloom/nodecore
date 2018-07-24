@@ -29,7 +29,7 @@ module.exports = {
 							var client = this.appcontroller.registeredapps[j].clients[k];
 							if(typeof client.userid !== 'undefined' && client.userid == i) {
 								if(typeof client.time !== "undefined") {
-                  //  ******   FIX THIS!!
+                  //  ******   FIX THIS!!  -- cut out for testing
 //									if(client.time > lasttime)		lasttime = client.time;
 								}
 							}
@@ -55,7 +55,6 @@ module.exports = {
 	},
   updateClient: function (id, user, req) {
     console.log('update client:',id);
-//    if(this.clients[id].socket)		this.clients[id].socket=req.socket;
 		this.updateTime(id);
 	},
   logoutClient: function (id, req) {

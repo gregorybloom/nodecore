@@ -4,8 +4,6 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
 
   app.all('*', function(req, res, next) {
 
-
-    console.log('*check',req.isAuthenticated(), (typeof req.user !== "undefined"));
       if(req.user && req.isAuthenticated()) {
         if(sessionmanager.clients[req.user._id]) {
 //          if(sessionmanager.clients[req.user._id].drop)   sessionmanager.logoutClient(req.user._id, req);
@@ -15,7 +13,7 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
       if(req.isAuthenticated()) {
           if(req.user) {
               if(!sessionmanager.hasClient(req.user._id)) {
-//                  sessionmanager.addClient(req.user._id, req.user, req);
+                  sessionmanager.addClient(req.user._id, req.user, req);
               }
               sessionmanager.updateClient(req.user._id,req.user,req);
           }

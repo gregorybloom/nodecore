@@ -74,6 +74,7 @@ var ExpressChatApp = {
           if(typeof this.clients[sockid].status === "undefined" || !this.clients[sockid].status.dropping) {
               var roomname = this.clients[sockid].roomname;
 
+              if(typeof this.clients[sockid].status === "undefined")      this.clients[sockid].status={};
               this.clients[sockid].status.dropping = true;
               this.sendClientList(this.app,this.io,socket,roomname);
           }
@@ -88,40 +89,38 @@ var ExpressChatApp = {
       }
       this.clients[socketID].tempname =  socketID.substring(0,8);
 
-//      console.log('logged in?',socket.request.user.logged_in,socket.request.user);
-//      console.log('logged in?',socket.request.isAuthenticated(),socket.request.user);
 
-    if(socket.request.user && socket.request.user.userid)      this.clients[socketID].isauthed = true;
-      if(this.clients[socketID].isauthed) {
-        this.clients[socketID].userid = socket.request.user._id;
-        this.clients[socketID].user={};
-        this.clients[socketID].user.email = socket.request.user.email;
-        this.clients[socketID].user.username = socket.request.user.username;
-        this.clients[socketID].user.id = socket.request.user._id;
+      if(socket.request.user && socket.request.user.userid)      this.clients[socketID].isauthed = true;
+        if(this.clients[socketID].isauthed) {
+          this.clients[socketID].userid = socket.request.user._id;
+          this.clients[socketID].user={};
+          this.clients[socketID].user.email = socket.request.user.email;
+          this.clients[socketID].user.username = socket.request.user.username;
+          this.clients[socketID].user.id = socket.request.user._id;
 
-        this.clients[socketID].status = {};
-        this.clients[socketID].status.isauthed = true;
-      }
-      var d = new Date();
-      this.clients[socketID].time = d.getTime();
+          this.clients[socketID].status = {};
+          this.clients[socketID].status.isauthed = true;
+        }
+        var d = new Date();
+        this.clients[socketID].time = d.getTime();
 
 
-      var nameobj = {};
-      if (typeof this.clients[socketID].displayname !== "undefined") {
-        nameobj.displayname = this.clients[socketID].displayname;
-      }
-      else if (typeof this.clients[socketID].tempname !== "undefined") {
-        nameobj.tempname = this.clients[socketID].tempname;
-      }
+        var nameobj = {};
+        if (typeof this.clients[socketID].displayname !== "undefined") {
+          nameobj.displayname = this.clients[socketID].displayname;
+        }
+        else if (typeof this.clients[socketID].tempname !== "undefined") {
+          nameobj.tempname = this.clients[socketID].tempname;
+        }
 
-      var fetchname = this.getClientName(socketID);
-      this.sendServerMessage(socketID,app,io,socket,null,
-        "You have connected.",
-        fetchname+" has connected.");
+        var fetchname = this.getClientName(socketID);
+        this.sendServerMessage(socketID,app,io,socket,null,
+          "You have connected.",
+          fetchname+" has connected.");
 
-      socket.emit(this.appspace+'loaded name',nameobj);
+        socket.emit(this.appspace+'loaded name',nameobj);
 
-      return this.clients[socketID];
+        return this.clients[socketID];
     },
     dropUser: function(socketID,app,io,socket) {
       if(typeof this.clients[socketID] === "undefined")       return;
@@ -154,7 +153,6 @@ var ExpressChatApp = {
       socket.join(roomname);
       this.clients[socketID].roomname = roomname;
       socket.emit(this.appspace+'loaded room', {'roomname':roomname});
-      //      io.emit(this.appspace+'loaded room', {'roomname':roomname});
 
       var fetchname = this.getClientName(socketID);
       this.sendServerMessage(socketID,app,io,socket,roomname,
@@ -222,41 +220,9 @@ var ExpressChatApp = {
       this.clients[socketID].username = socket.request.user.username;
       this.clients[socketID].displayname = socket.request.user.displayname;
     },
-    checkIfAuth: function(socketID,socket,app,io) {
-      return;
-      if(typeof this.clients[socketID].isauthed !== "undefined") {
-        if(this.clients[socketID].isauthed && typeof socket.request.user !== "undefined") {
-          if(typeof socket.request.user.email !== "undefined") {
-            var upped = false;
-
-            var UserSchema = require(this.basepath+'/models/schema/usermodels/user');
-            UserSchema.findOne({ 'email' :  socket.request.user.email }, function(err, user) {
-                // if there are any errors, return the error
-                if (err) {
-                  return done(err);
-                }
-                if (user) {
-                  this.upAuthClient(socketID, socket,app,io);
-                  upped = true;
-                }
-            }.bind(this));
-          }
-        }
-
-
-        if(!upped && this.clients[socketID].isauthed) {
-          if(typeof socket.request.user === "undefined" || !socket.request.user.logged_in) {
-//          if(typeof socket.request.user === "undefined" || !socket.request.isAuthenticated()) {
-            this.deAuthClient(socketID, socket,app,io);
-          }
-        }
-      }
-    },
     deAuthClient: function(socketID, socket,app,io) {
-      return;
-      if(typeof this.clients[socketID].userid === "undefined")  return;
+      if(typeof this.clients[socketID].userid === "undefined")    return;
 
-      console.log('deauth:',socketID,socket.request.user.logged_in,socket.request.user);
       var fetchname1 = this.getClientName(socketID);
       var roomname = this.clients[socketID].roomname;
 
@@ -267,19 +233,14 @@ var ExpressChatApp = {
       if(typeof this.clients[socketID].deauthed === "undefined")     this.clients[socketID].deauthed = true;
 
 
-      if(typeof this.clients[socketID].userid !== "undefined")          delete this.clients[socketID].userid;
       if(typeof this.clients[socketID].user !== "undefined")            delete this.clients[socketID].user;
       if(typeof this.clients[socketID].displayname !== "undefined")     delete this.clients[socketID].displayname;
       if(typeof this.clients[socketID].username !== "undefined")        delete this.clients[socketID].username;
-
-      delete socket.request.user;
-      socket.request.user={logged_in:false};
+/*
+      if(typeof this.clients[socketID].userid !== "undefined")          delete this.clients[socketID].userid;
+/**/
 
       this.sendClientList(app, io, socket, roomname);
-
-//      this.usercount = this.usercount+1;
-//      var fetchname2 = "User "+this.usercount;
-//      this.clients[socketID].tempname = fetchname2;
 
       var obj = {type:'server message'};
 
@@ -299,8 +260,6 @@ var ExpressChatApp = {
       return;
         this.clients[socketID].isauthed = true;
         var roomname = this.clients[socketID].roomname;
-        console.log('upauth:',socket.request.user.logged_in,socket.request.user);
-        console.log('upauth:',socket.request.isAuthenticated(),socket.request.user);
 
         var fetchname1 = this.getClientName(socketID);
           this.clients[socketID].userid = socket.request.user._id;
@@ -371,10 +330,6 @@ var ExpressChatApp = {
           var defroom = this.getDefaultRoom(domainstr);
 
           this.addUserToRoom(socketID,app,io,socket,defroom);
-          this.checkIfAuth(socketID,socket,app,io);
-          this.listenOnSocket(socketID, app, io, socket);
-//          req.session.name = req.data;
-//          req.session.save();
       }.bind(this));
       socket.on(this.appspace+'disconnect', function(msg) {
         var socketID = socket.id;
@@ -382,23 +337,6 @@ var ExpressChatApp = {
 
           var client = this.dropUser(socketID,app,io,socket);
           this.sendClientList(app, io, socket, client.roomname);
-      }.bind(this));
-      socket.on(this.appspace+'refresh page', function(msg) {
-        var socketID = socket.id;
-
-          if(typeof this.clients[socketID] === "undefined") {
-            var client = this.addUser(socketID,app,io,socket);
-          }
-          else {
-            var client = this.clients[socketID];
-          }
-
-          this.sendClientList(app, io, socket, client.roomname);
-          this.listenOnSocket(socketID, app, io, socket);
-
-          socket.emit(this.appspace+'loaded room', {'roomname':client.roomname});
-//          req.session.name = req.data;
-//          req.session.save();
       }.bind(this));
       socket.on(this.appspace+'heartbeat', function(msg) {
           var socketID = socket.id;
@@ -409,32 +347,7 @@ var ExpressChatApp = {
             if( this.clients[socketID].status.dropping )     delete this.clients[socketID].status.dropping;
           }
 
-//          if(typeof this.clients[socketID].status.isauthed !== "undefined")      delete this.clients[socketID].status.isauthed;
-
-
-//          sessionmanager.clients[id].drop = false;
           var checkAuth=false;
-          console.log('heartesc',socket.request.user);
-
-          if(socket.request.user.logged_in || socket.request.isAuthenticated()) {
-            if(!this.clients[socketID].deauthed) {
-              if(typeof this.clients[socketID].user === "undefined" || !this.clients[socketID].isauthed) {
-                console.log('escalate user '+socketID+' => '+ socket.request.user.username);
-                this.checkIfAuth(socketID,socket,app,io);
-                checkAuth=true;
-              }
-            }
-          }
-          if(!checkAuth) {
-            if(!socket.request.user.logged_in || !socket.request.isAuthenticated()) {
-              if(typeof this.clients[socketID].user !== "undefined" || this.clients[socketID].isauthed) {
-                var roomname = this.clients[socketID].roomname;
-                console.log('de-escalate user '+socketID+' => '+this.clients[socketID].user.username);
-                this.deAuthClient(socketID, socket,app,io);
-                this.sendClientList(app, io, socket,roomname);
-              }
-            }
-          }
       }.bind(this));
 
 
@@ -514,9 +427,6 @@ var ExpressChatApp = {
         }
         this.sendClientList(app, io, socket, roomname);
       }.bind(this));
-    },
-    listenOnSocket: function(socketID, app, io, socket) {
-
     }
 };
 
