@@ -30,7 +30,7 @@ module.exports = {
 							if(typeof client.userid !== 'undefined' && client.userid == i) {
 								if(typeof client.time !== "undefined") {
                   //  ******   FIX THIS!!  -- cut out for testing
-//									if(client.time > lasttime)		lasttime = client.time;
+									if(client.time > lasttime)		lasttime = client.time;
 								}
 							}
 						}
@@ -44,6 +44,9 @@ module.exports = {
 
 			if(this.timeout <= deltatime) {
 				this.dropClient(i);
+			}
+			else if(this.clients[i].drop) {
+				delete this.clients[i].drop;
 			}
 		}
 	},
@@ -59,10 +62,9 @@ module.exports = {
 	},
   logoutClient: function (id, req) {
     req.logout();
-    this.clients[id].drop = false;
+    delete this.clients[id].drop;
     delete this.clients[id];
     console.log('client session deauthed: '+id);
-    console.log('deauth test:', req.isAuthenticated());
   },
 	dropClient: function (id) {
 		if(typeof this.clients[id] !== "undefined") {
@@ -115,8 +117,6 @@ module.exports = {
 		if(typeof this.clients[id] === 'undefined')		return;
         var d = new Date();
         this.clients[id].time=d.getTime();
-
-//        console.log('update: '+id+': '+this.clients[id].time);
 	}
 
 };
