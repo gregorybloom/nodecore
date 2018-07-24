@@ -260,36 +260,56 @@ var ExpressChatApp = {
           this.sendClientList(this.clients[socketID].roomname);
       } /**/
     },
-    upAuthClient: function(socketID, socket,app,io) {
-      return;
-        this.clients[socketID].isauthed = true;
-        var roomname = this.clients[socketID].roomname;
+    upAuthClient: function(socketID, socket,app,io, newuserid=null) {
+      var UserSchema = require('../schema/usermodels/user.js');
 
-        var fetchname1 = this.getClientName(socketID);
-          this.clients[socketID].userid = socket.request.user._id;
+      if(newuserid != null && typeof newuserid !== "undefined")  {
+        this.clients[socketID].user={};
+        this.clients[socketID].userid=newuserid;
+      }
+      else if(typeof this.clients[socketID].userid === "undefined")    return;
 
-          this.clients[socketID].user={};
-          this.clients[socketID].user.email = socket.request.user.email;
-          this.clients[socketID].user.username = socket.request.user.username;
-          this.clients[socketID].user.id = socket.request.user._id;
-
-        this.updateClientName(socketID,socket);
-
-        var fetchname2 = this.getClientName(socketID);
-
-        if(fetchname1 !== fetchname2) {
-
-          this.sendServerMessage(socketID,app,io,socket,roomname,
-            "Your user profile has loaded.  Your chat name has been changed to: "+fetchname2,
-            "'"+fetchname1+"' has changed their chat name to: '"+fetchname2+"'.");
-
-          if(fetchname2 !== this.clients[socketID].username) {
-              this.clients[socketID].displayname = fetchname2;
-          } else if(typeof this.clients[socketID].username === "string") {
-              delete this.clients[socketID].displayname;
+      var userid = this.clients[socketID].userid;
+      UserSchema.findOne({"_id":userid}, function(err, founduser) {
+          if(err) {
+            console.log("upauth error:",err);
+            return;
           }
-          this.sendClientList(app, io, socket, roomname);
-        }
+          if(founduser) {
+
+              this.clients[socketID].isauthed = true;
+              var roomname = this.clients[socketID].roomname;
+
+              var fetchname1 = this.getClientName(socketID);
+              this.clients[socketID].userid = founduser._id;
+
+              if(typeof this.clients[socketID].status === "undefined")  this.clients[socketID].status = {};
+              this.clients[socketID].status.isauthed = true;
+
+              this.clients[socketID].user={};
+              this.clients[socketID].user.email = founduser.email;
+              this.clients[socketID].user.username = founduser.username;
+              this.clients[socketID].user.id = founduser._id;
+              if(founduser.displayname)   this.clients[socketID].user.displayname = founduser.displayname;
+
+
+              this.updateClientName(socketID,socket);
+              var fetchname2 = this.getClientName(socketID);
+
+              if(fetchname1 !== fetchname2) {
+                  this.sendServerMessage(socketID,app,io,socket,roomname,
+                  "Your user profile has loaded.  Your chat name has been changed to: "+fetchname2,
+                  "'"+fetchname1+"' has changed their chat name to: '"+fetchname2+"'.");
+
+                  if(fetchname2 !== this.clients[socketID].username) {
+                    this.clients[socketID].displayname = fetchname2;
+                  } else if(typeof this.clients[socketID].username === "string") {
+                    delete this.clients[socketID].displayname;
+                  }
+              }
+              this.sendClientList(app, io, socket, roomname);
+          }
+      });
     },
     sendClientList: function(app, io, socket, roomname) {
       for (id in this.clients) {
