@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      div#botctrls { background: #000; position: fixed; bottom: 0; height:40px; width: 100%; }
+
+      #messagepanel { position:absolute; top:40px; bottom: 40px; left:0px; right:200px;}
+      #scrollbit { position:absolute; bottom: 0px; left: 0px; right: 017px; height:15px; }
+      #scrollbit.scrolled {
+          background: linear-gradient(to bottom, rgba(175, 175, 175, 0),  rgba(175, 175, 175, 1));
+      }
+
+      #messagefield { position:absolute; top:0px; bottom: 0px; left:0px; right:0px;
+        overflow: auto; overflow-x: hidden; word-wrap: break-word;}
+      #messages { list-style-type: none; margin: 0; padding: 0;}
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+
+      #messages li.servermsg { color:#999; font-style:italic; }
+
+      #messages li .name {text-decoration: underline;}
+      #messages li .username {font-weight: bold;}
+
+      form#msg { padding: 3px; position: fixed; bottom: 0; width:90%; left: 0;}
+      form#msg input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form#msg button { width: 9%; min-width: 55px; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      form#clr { padding: 3px; position: fixed; bottom: 0; right: 0; width:10%;}
+      form#clr button { width: 100%; min-width: 55px; background: rgb(130, 224, 255); border: none; padding: 10px;}
+
+      div#top { background: #000; padding: 3px; position: fixed; top: 0; left: 0; right: 0; }
+      div#top input#name { border: 0; padding: 10px; width: 38%; margin-right: .5%; float:left; }
+      div#top input#room { border: 0; padding: 10px; width: 60%; margin-left: .5%; float:right;}
+
+      #userfield { width:200px; position:fixed; top:40px; bottom:40px; background: #eee; right: 0px; border:1px solid;}
+      #users { list-style-type: none; margin: 0; padding: 0; font: 15px Helvetica, Arial;}
+      #users li { padding: 5px 10px; }
+      #users li span.name {text-decoration: underline;}
+      #users li span.username {font-weight: bold;}
+
+      #users ul.statuslist {list-style-type: disc; margin: 0; padding: 0; font: 9px Helvetica, Arial; font-weight: normal; text-decoration: none;}
+      #users ul.statuslist li {color:#999; font: 11px Helvetica, Arial; display:inline; margin: 0; padding: 0; margin-left:7px;}
+
+
+
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+  </head>
+  <body>
+    <div id="top">
+      <form id="topname" action="">
+        <input id="name" autocomplete="off" />
+      </form>
+      <form id="toproom" action="">
+        <input id="room" autocomplete="off" />
+      </form>
+    </div>
+    <div id="messagepanel">
+      <div id="messagefield">
+        <ul id="messages">
+        </ul>
+      </div>
+      <div id="scrollbit">
+      </div>
+    </div>
+    <div id="userfield">
+      <ul id="users">
+      </ul>
+    </div>
+
+    <div id="botctrls">
+      <form id="msg" action="">
+        <input id="m" autocomplete="off" /><button>Send</button>
+      </form>
+      <form id="clr">
+        <button>Clear</button>
+      </form>
+    </div>
+
+<!-- <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+// -->
+
+<script>
+var myname = '';
+var myroom = '';
+
+var scrolltobot = true;
+var appname = 'expresschat';
+var appspace = appname+'-';
+
+
+$(document).ready(function(){
+  if(typeof io === "undefined" || io == null)     return;
+  var socket = io();
+
+  $('div#messagefield').scroll(function(){
+    var div = $(this);
+    var divbit = $('div#messagepanel div#scrollbit');
+
+    if( (div[0].scrollHeight-div.scrollTop()-45) <= div.height() ) {
+      scrolltobot = true;
+      if(divbit.hasClass('scrolled'))   divbit.removeClass('scrolled');
+    }
+    else {
+      scrolltobot = false;
+      if(!divbit.hasClass('scrolled'))   divbit.addClass('scrolled');
+    }
+  });
+
+
+  var namefield = document.getElementById("name");
+  var roomfield = document.getElementById("room");
+
+  socket.emit(appspace+'connection',{});
+
+  socket.on(appspace+'loaded name', function(msg){
+    var dat = msg;
+    var tname = "";
+    if(typeof dat.displayname !== "undefined")   tname = dat.displayname;
+    if(typeof dat.tempname !== "undefined")      tname = dat.tempname;
+    if(typeof dat.username !== "undefined")      tname = dat.username;
+
+    namefield.value = tname;
+  });
+  socket.on(appspace+'loaded room', function(msg){
+    var dat = msg;
+    myroom = dat.roomname;
+    roomfield.value = myroom;
+  });
+
+  socket.on(appspace+'heartbeat', function(msg){
+    socket.emit(appspace+'heartbeat', {} );
+  });
+
+  socket.on(appspace+'chat message', function(msg){
+
+      var time = new Date();
+      var hour = time.getHours();
+      var minutes = time.getMinutes();   if(minutes < 10)   minutes='0'+minutes;
+      var seconds = time.getSeconds();   if(seconds < 10)   seconds='0'+seconds;
+
+      var d = "AM";
+      if(hour >= 12)  d = "PM";
+      if(hour > 12)  hour -= 12;
+      if(hour == 0)  hour == 12;
+      if(hour < 10)  hour='0'+hour;
+
+      d = hour+":"+minutes+":"+seconds+' '+d;
+
+      var msgtxt = ' ('+d+'): ' + msg.message;
+      var msgname = $('<span>');
+
+      if(msg.user == true || msg.user === "true") {
+            msgname.addClass('username');
+      }
+      else {
+            msgname.addClass('name');
+      }
+      msgname.text(msg.username);
+
+      var LI = $('<li>').append(  msgname  );
+      $('#messages').append(LI.append(msgtxt));
+      if(scrolltobot)      $("div#messagefield").scrollTop($("div#messagefield")[0].scrollHeight);
+  });
+
+  socket.on(appspace+'server message', function(msg){
+    var dat = msg;
+      $('#messages').append(  $('<li class="servermsg">').text( JSON.stringify(dat.message) )  );
+
+
+      if(scrolltobot)      $("div#messagefield").scrollTop($("div#messagefield")[0].scrollHeight);
+  });
+
+
+  socket.on(appspace+'user list', function(msg){
+    var dat = msg;
+
+    $('ul#users li').remove();
+
+    if(Array.isArray(dat)) {
+      for(i in dat) {
+        var tname = "";
+        if(typeof dat[i].displayname !== "undefined")   tname = dat[i].displayname;
+        if(typeof dat[i].tempname !== "undefined")      tname = 'Guest ('+dat[i].tempname +')';
+        if(typeof dat[i].username !== "undefined")      tname = dat[i].username;
+
+        var lit = $('<li>');
+
+        var spit = $('<span>');
+        if(typeof dat[i].username !== "undefined")    spit.addClass('username');
+        else                                          spit.addClass('name');
+        spit.text(tname);
+        lit.append(spit);
+
+        if(dat[i].status) {
+          var slit = $('<ul>').addClass('statuslist');
+
+          for(j in dat[i].status) {
+            if(dat[i].status[j] == true) {
+              var slitit = $('<li>').text(j);
+              slitit.addClass('status_'+j);
+              slit.append( slitit );
+            }
+          }
+          lit.append(slit);
+        }
+
+        if(typeof dat[i].username !== "undefined")    lit.addClass('username');
+        else                                          lit.addClass('name');
+
+        $('#users').append(  lit  );
+      }
+    }
+  });
+
+
+  $('form#topname').submit(function(){
+
+    var namefield = document.getElementById("name");
+    socket.emit(appspace+'change name', {name:namefield.value} );
+    myname = namefield.value;
+    return false;
+  });
+  $('form#toproom').submit(function(){
+
+    var roomfield = document.getElementById("room");
+    socket.emit(appspace+'change room', {roomname:roomfield.value} );
+    myroom = roomfield.value;
+    return false;
+  });
+  $('form#msg').submit(function(){
+
+    socket.emit(appspace+'chat message', {message:($('#m').val())} );
+    $('#m').val('');
+
+    return false;
+  });
+  $('form#clr').submit(function(event){
+    $('ul#messages').empty();
+
+    console.log('clear');
+    event.preventDefault();
+  });
+
+});
+</script>
+<!--
+<script src="/socket.io/socket.io.js"></script>
+// -->
+  </body>
+</html>

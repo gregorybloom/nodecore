@@ -1,0 +1,16 @@
+resources/*
+branches/*
+test/*
+
+package.json
+*/package.json
+*.pyc
+
+*/config/*
+config/*
+
+*/install/*
+install/*
+
+*/__oldver/*
+__oldver/*
