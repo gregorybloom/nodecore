@@ -4,8 +4,7 @@ module.exports = {
 
 	clients: {},
 	appcontroller: undefined,
-//	timeout: (45*1000*60),
-  timeout: (15*1000),
+	timeout: (45*1000*60),
 
   checkIfClientMissing: function (id, user, req) {
     if(req.isAuthenticated()) {
@@ -29,7 +28,6 @@ module.exports = {
 							var client = this.appcontroller.registeredapps[j].clients[k];
 							if(typeof client.userid !== 'undefined' && client.userid == i) {
 								if(typeof client.time !== "undefined") {
-                  //  ******   FIX THIS!!  -- cut out for testing
 									if(client.time > lasttime)		lasttime = client.time;
 								}
 							}
@@ -41,7 +39,7 @@ module.exports = {
       var d = new Date();
       var deltatime = d.getTime() - lasttime;
 
-
+			console.log(i,':', this.timeout, '<=', deltatime);
 			if(this.timeout <= deltatime) {
 				this.removeClient(i);
 			}
@@ -89,7 +87,6 @@ module.exports = {
 		}
  	},
   authClientInApps: function(id) {
-    return;
 		if(typeof this.appcontroller !== 'undefined') {
 			for(j in this.appcontroller.registeredapps) {
 				var subapp = this.appcontroller.registeredapps[j];
@@ -97,8 +94,8 @@ module.exports = {
 					for(k in subapp.clients) {
 						var client = subapp.clients[k];
             // CLIENT.USERID doesn't exist!  How should we upauth this?
-						if(typeof client.userid !== 'undefined' && client.userid == id) {
-//							subapp.upAuthClient(k, subapp.clients[k].socket,subapp.app,subapp.io);
+						if(typeof client.userid !== 'undefined' && String(client.userid) == String(id)) {
+							subapp.upAuthClient(k, subapp.clients[k].socket,subapp.app,subapp.io);
 						}
 					}
 				}

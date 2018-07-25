@@ -62,6 +62,9 @@ var ExpressChatApp = {
       }
     },
     checkbeat: function(sockid) {
+      // ************* WORK ON FIXING THIS *************
+      return;
+      /*
       var d = new Date();
       if(typeof this.clients[sockid].time === "undefined")    this.clients[sockid].time = d.getTime();
       var socket = this.clients[sockid].socket;
@@ -78,18 +81,18 @@ var ExpressChatApp = {
               this.clients[sockid].status.dropping = true;
               this.sendClientList(this.app,this.io,socket,roomname);
           }
-      }
+      }     /**/
     },
     addUser: function(socketID,app,io,socket) {
-      if(typeof this.clients[socketID] === "undefined")       this.clients[socketID]={};
-      this.clients[socketID].socket=socket;
+        if(typeof this.clients[socketID] === "undefined")       this.clients[socketID]={};
+        this.clients[socketID].socket=socket;
 
-      this.updateClientName(socketID,socket);
+        this.updateClientName(socketID,socket);
+        this.clients[socketID].tempname =  socketID.substring(0,8);
 
-      this.clients[socketID].tempname =  socketID.substring(0,8);
+        console.log('add user:', socket.request.user, Object.keys(this.clients[socketID]) );
 
-
-      if(socket.request.user && socket.request.user.userid)      this.clients[socketID].isauthed = true;
+        if(socket.request.user && socket.request.user._id)      this.clients[socketID].isauthed = true;
         if(this.clients[socketID].isauthed) {
           this.clients[socketID].userid = socket.request.user._id;
           this.clients[socketID].user={};
@@ -104,19 +107,12 @@ var ExpressChatApp = {
         this.clients[socketID].time = d.getTime();
 
 
-        var nameobj = {};
-        if (typeof this.clients[socketID].displayname !== "undefined") {
-          nameobj.displayname = this.clients[socketID].displayname;
-        }
-        else if (typeof this.clients[socketID].tempname !== "undefined") {
-          nameobj.tempname = this.clients[socketID].tempname;
-        }
-
         var fetchname = this.getClientName(socketID);
         this.sendServerMessage(socketID,app,io,socket,null,
           "You have connected.",
           fetchname+" has connected.");
 
+        var nameobj = this.getClientName(socketID,true);
         socket.emit(this.appspace+'loaded name',nameobj);
 
         return this.clients[socketID];
@@ -190,34 +186,33 @@ var ExpressChatApp = {
       for(socketID in this.clients) {
           if(typeof roomname === "string" && this.clients[socketID].roomname !== roomname)
               continue;
-          var client = {};
+          var clientnameobj = this.getClientName(socketID,true);
+          if(this.clients[socketID].status)      clientnameobj.status = this.clients[socketID].status;
 
-          if( !this.clients[socketID].isauthed ) {
-            client.tempname=this.clients[socketID].tempname;
-          }
-          else if( typeof this.clients[socketID].displayname !== "undefined") {
-              client.displayname=this.clients[socketID].displayname;
-          }
-          else if(typeof this.clients[socketID].username !== "undefined") {
-              client.username=this.clients[socketID].username;
-          }
-          else if(typeof this.clients[socketID].tempname !== "undefined") {
-              client.tempname=this.clients[socketID].tempname;
-          }
-          if(this.clients[socketID].status)      client.status = this.clients[socketID].status;
-
-          list.push(client);
+          list.push(clientnameobj);
       }
       return list;
     },
-    getClientName: function(socketID) {
+    getClientName: function(socketID,loadobj) {
       var client = this.clients[socketID];
       if(typeof client === "undefined" || client == null)     return;
 
-      if(!this.clients[socketID].isauthed)                return client.tempname;
-      if(typeof client.displayname !== "undefined")       return client.displayname;
-      else if(typeof client.username !== "undefined")     return client.username;
-      else if(typeof client.tempname !== "undefined")     return client.tempname;
+      if(loadobj == true || loadobj == "true") {
+        if(!this.clients[socketID].isauthed)                return {'tempname':client.tempname};
+        if(typeof client.displayname !== "undefined") {
+          if(typeof client.username === "undefined")         return {'displayname':client.displayname};
+          else if(client.displayname != client.username)     return {'displayname':client.displayname};
+          else                                               return {'username':client.username};
+        }
+        else if(typeof client.username !== "undefined")     return {'username':client.username};
+        else if(typeof client.tempname !== "undefined")     return {'tempname':client.tempname};
+      }
+      else {
+        if(!this.clients[socketID].isauthed)                return client.tempname;
+        if(typeof client.displayname !== "undefined")       return client.displayname;
+        else if(typeof client.username !== "undefined")     return client.username;
+        else if(typeof client.tempname !== "undefined")     return client.tempname;
+      }
     },
     updateClientName: function(socketID,socket) {
       if (typeof socket.request.user !== "undefined") {
@@ -243,11 +238,21 @@ var ExpressChatApp = {
 /*
       if(typeof this.clients[socketID].userid !== "undefined")          delete this.clients[socketID].userid;
 /**/
+      var fetchname2 = this.getClientName(socketID);
+      if(fetchname1 !== fetchname2) {
+          this.sendServerMessage(socketID,app,io,socket,roomname,
+          "You have been logged out.  Your chat name has been changed to: "+fetchname2,
+          "'"+fetchname1+"' has logged out.  Their name changed their chat name to: '"+fetchname2+"'.");
+      }
+
+      var nameobj = {};
+      nameobj.tempname = this.clients[socketID].tempname;
+      socket.emit(this.appspace+'loaded name',nameobj);
 
       this.sendClientList(app, io, socket, roomname);
 
+/*
       var obj = {type:'server message'};
-
 /*        if(true) {
           var obj = {message:{type:'server message'}};
           obj.message.message = "You have logged out of the main site.  Your chat name has been changed to: "+fetchname2;
@@ -262,6 +267,7 @@ var ExpressChatApp = {
     },
     upAuthClient: function(socketID, socket,app,io, newuserid) {
       var UserSchema = require('../schema/usermodels/user.js');
+      console.log("upauth client:",socketID);
 
       if(newuserid == null || typeof newuserid === "undefined")  newuserid = null;
       if(newuserid != null && typeof newuserid !== "undefined")  {
@@ -277,7 +283,7 @@ var ExpressChatApp = {
             return;
           }
           if(founduser) {
-
+              var subapp = ExpressChatApp;
               this.clients[socketID].isauthed = true;
               var roomname = this.clients[socketID].roomname;
 
@@ -302,15 +308,18 @@ var ExpressChatApp = {
                   "Your user profile has loaded.  Your chat name has been changed to: "+fetchname2,
                   "'"+fetchname1+"' has changed their chat name to: '"+fetchname2+"'.");
 
-                  if(fetchname2 !== this.clients[socketID].username) {
+/*                  if(fetchname2 !== this.clients[socketID].username) {
                     this.clients[socketID].displayname = fetchname2;
                   } else if(typeof this.clients[socketID].username === "string") {
                     delete this.clients[socketID].displayname;
-                  }
+                  }   /**/
               }
+              var nameobj = this.getClientName(socketID,true);
+              socket.emit(this.appspace+'loaded name',nameobj);
+
               this.sendClientList(app, io, socket, roomname);
           }
-      });
+      }.bind(this));
     },
     sendClientList: function(app, io, socket, roomname) {
       for (id in this.clients) {
@@ -355,6 +364,7 @@ var ExpressChatApp = {
           var defroom = this.getDefaultRoom(domainstr);
 
           this.addUserToRoom(socketID,app,io,socket,defroom);
+          this.sendClientList(app, io, socket, defroom);
       }.bind(this));
       socket.on(this.appspace+'disconnect', function(msg) {
         var socketID = socket.id;
