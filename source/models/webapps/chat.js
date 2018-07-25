@@ -260,9 +260,10 @@ var ExpressChatApp = {
           this.sendClientList(this.clients[socketID].roomname);
       } /**/
     },
-    upAuthClient: function(socketID, socket,app,io, newuserid=null) {
+    upAuthClient: function(socketID, socket,app,io, newuserid) {
       var UserSchema = require('../schema/usermodels/user.js');
 
+      if(newuserid == null || typeof newuserid === "undefined")  newuserid = null;
       if(newuserid != null && typeof newuserid !== "undefined")  {
         this.clients[socketID].user={};
         this.clients[socketID].userid=newuserid;
