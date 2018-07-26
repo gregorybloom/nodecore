@@ -56,26 +56,25 @@ module.exports = function(app, passport, configattr, sessionmanager) {
   //              });
             }
             else if(step == 2 || step == 3) {
-  //              User.findOne(checkobj, function(err, user) {
-                if(true) {
-                    var err = false;  var user = false;
-                    if(err) {
-                        req.flash('signupMessage', JSON.stringify(err) );
-                        res.redirect('/signup');
+                UserSchema.findOne(checkobj, function(err, user) {
+                    if(true) {
+                        if(err) {
+                            req.flash('signupMessage', JSON.stringify(err) );
+                            res.redirect('/signup');
+                        }
+                        if(user) {
+                            var flashmsg = 'Error';
+                            if(step == 2)           flashmsg = 'That username is already taken.';
+                            if(step == 3)           flashmsg = 'That email is already taken.';
+                            req.flash('signupMessage', flashmsg);
+                            res.redirect('/signup');
+                        }
+                        else {
+                            if(step == 2)           authSteps(step+1);
+                            if(step == 3)           authSteps(step+1);
+                        }
                     }
-                    if(user) {
-                        var flashmsg = 'Error';
-                        if(step == 2)           flashmsg = 'That username is already taken.';
-                        if(step == 3)           flashmsg = 'That email is already taken.';
-                        req.flash('signupMessage', flashmsg);
-                        res.redirect('/signup');
-                    }
-                    else {
-                        if(step == 2)           authSteps(step+1);
-                        if(step == 3)           authSteps(step+1);
-                    }
-  //              });
-                }
+                });
             }
             else {
   //              ApprovedEmail.findOne(checkobj, function(err3, appr) {

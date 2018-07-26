@@ -16,17 +16,14 @@ module.exports = function(app, io, basepath, configattr, sessionmanager, appcont
     }
 
     if(socket.request.user.logged_in == false) {
-//    if(socket.request.isAuthenticated() == false) {
-      console.log('User connected: Guest ('+ socket.request.sessionID.substring(0,8) +') logged in');
+      console.log('User connected: Guest ('+ socket.id.substring(0,8) +') logged in');
     }
     else {
       console.log('User connected:'+ socket.request.user.email.split("@").shift() );
     }
 
-
     var name = "";
-    //    if(socket.request.isAuthenticated() == false)   name = "Guest ("+socket.request.sessionID.substring(0,8)+")"
-    if(socket.request.user.logged_in == false)   name = "Guest ("+socket.request.sessionID.substring(0,8)+")"
+    if(socket.request.user.logged_in == false)      name = "Guest ("+socket.id.substring(0,8)+")"
     else                                            name = socket.request.user.email.split("@").shift()
 
     socket.on('disconnect', function(){
