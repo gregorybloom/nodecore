@@ -8,6 +8,8 @@
     <style>
         body        { padding-top:80px; }
     </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 </head>
 <body>
 <%
@@ -20,6 +22,7 @@ if(domain==="manaofmana.com")  domainname = "Mana of Mana";
 
     <div class="jumbotron text-center">
         <h1>Welcome to <%= domainname %></h1>
+        <!-- <%= servermode %>    //-->
 
         <p>Login or Register with:</p>
 
@@ -31,6 +34,8 @@ if(domain==="manaofmana.com")  domainname = "Mana of Mana";
             <a href="/chat" target="_blank" class="btn btn-default"><span class="fa fa-user"></span> Chat Room</a>
         </p>
     </div>
+
+    <script src="/js/heartbeat.js"></script>
 
 </div>
 </body>

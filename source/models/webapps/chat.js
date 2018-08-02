@@ -57,7 +57,6 @@ var ExpressChatApp = {
         for(sockid in this.clients) {
           this.clients[sockid].socket.emit(this.appspace+'heartbeat', obj);
           var d = new Date();
-//          this.clients[item].time = d.getTime();
           this.checkbeat(sockid);
       }
     },
@@ -66,10 +65,10 @@ var ExpressChatApp = {
       return;
       /*
       var d = new Date();
-      if(typeof this.clients[sockid].time === "undefined")    this.clients[sockid].time = d.getTime();
+      if(typeof this.clients[sockid].activityTime === "undefined")    this.clients[sockid].activityTime = d.getTime();
       var socket = this.clients[sockid].socket;
 
-      var deltatime = d.getTime() - this.clients[sockid].time;
+      var deltatime = d.getTime() - this.clients[sockid].activityTime;
       if( deltatime >= (this.interval*6) ) {
           this.dropUser(sockid,this.app,this.io,socket);
       }
@@ -105,7 +104,7 @@ var ExpressChatApp = {
           this.clients[socketID].status.isauthed = true;
         }
         var d = new Date();
-        this.clients[socketID].time = d.getTime();
+        this.clients[socketID].activityTime = d.getTime();
 
 
         var fetchname = this.getClientName(socketID);
@@ -376,7 +375,7 @@ var ExpressChatApp = {
           var socketID = socket.id;
 
           var d = new Date();
-          this.clients[socketID].time = d.getTime();
+          this.clients[socketID].activityTime = d.getTime();
           if( this.clients[socketID].status ) {
             if( this.clients[socketID].status.dropping )     delete this.clients[socketID].status.dropping;
           }

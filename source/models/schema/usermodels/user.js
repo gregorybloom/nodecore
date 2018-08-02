@@ -27,6 +27,19 @@ var userSchema = new mongoose.Schema({
       type: String,
       trim: true
     },
+    displayname     : {
+      type: String,
+      trim: true
+    },
+    verified        : {
+      type: Boolean,
+      required: true,
+      default: false
+    },
+    verifyHash      : {
+      type: String,
+      required: true
+    },
 
     authid     : {
       type: String,
@@ -59,6 +72,10 @@ userSchema.methods.validPassword = function(password) {
     return bcrypt.compareSync(password, this.password);
 };
 
+userSchema.methods.generateSimpleHash = function(length) {
+    if(typeof length === "undefined" || length == null)   length = 20;
+    return Math.random().toString(36).replace(/[^a-z0-9]+/g, '').substr(0, length);
+};
 /*
 userSchema.methods.generateID = function() {
 };

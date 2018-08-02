@@ -8,7 +8,7 @@ module.exports = {
 
 		if(app.interval && app.intervalFn && app.interval >= 1000) {
 			this.intervalfns[name] = app.intervalFn.bind(app);
-			setInterval(app.intervalFn.bind(app), app.interval);
+//			setInterval(app.intervalFn.bind(app), app.interval);
 		}
 	}
 

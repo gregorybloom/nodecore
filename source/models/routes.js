@@ -1,3 +1,5 @@
+var UserSchema = require('../models/schema/usermodels/user.js');
+
 module.exports = function(app, basepath, configattr, sessionmanager) {
 
   var FUNCTIONSCLASS=require('../models/functions.js');
@@ -26,12 +28,14 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
         if(!req.isAuthenticated()) {
             res.render('index.ejs', {
                 message: req.flash('loginMessage'),
-                domain : "manaofmana.com"
+                domain : "manaofmana.com",
+                servermode : configattr.mode
             });
         }
         else {
             res.render('index2.ejs', {
-                domain : "manaofmana.com"
+                domain : "manaofmana.com",
+                servermode : configattr.mode
             });
         }
       }
@@ -50,6 +54,9 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
       // render the page and pass in any flash data if it exists
       res.render('signup.ejs', { message: req.flash('signupMessage') });
   });
+  app.get('/verifyemail',function(req,res){
+    res.render('verifyemail.ejs', { message: req.flash('verifyEmailMessage') });
+  });
   app.get('/profile', function(req, res) {
     if(!req.isAuthenticated()) {
       res.redirect('/');
@@ -66,10 +73,66 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
       res.redirect('/');
     }
     else {
-      console.log('client logout');
+      console.log('client logout:',req.user._id);
       sessionmanager.removeClient(req.user._id);
       sessionmanager.logoutClient(req.user._id, req);
       res.redirect('/');
+    }
+  });
+
+
+
+  app.get('/verify',function(req,res){
+      if((req.protocol+"://"+req['hostname'])==("https://"+configattr['hostname']))
+      {
+          if(typeof req.query.hash === "undefined" || req.query.hash == null) {
+            req.flash('loginMessage', "Verify failed.  No unverified account listed." );
+            res.redirect('/login');
+            return;
+          }
+          UserSchema.findOne({'verifyHash':req.query.hash}, function(err, user) {
+            if(err) {
+                console.log('ERR',JSON.stringify(err));
+                req.flash('loginMessage', JSON.stringify(err) );
+                res.redirect('/login');
+            }
+            if(user) {
+                if(!user.verified) {
+                    UserSchema.update( {'email':user.email}, {'verified':true}, function (err2, numAffected) {
+                      if(err2) {
+                          console.log('ERR2',JSON.stringify(err2));
+                          req.flash('loginMessage', JSON.stringify(err2) );
+                          res.redirect('/login');
+                      }
+                      if(numAffected.nModified==0) {
+                        req.flash('loginMessage', "Verify failed.  No unverified account listed." );
+                        res.redirect('/login');
+                      }
+                      else if(numAffected.nModified==1) {
+                        req.flash('loginMessage', "Account has been successfully verified." );
+                        res.redirect('/login');
+                      }
+                      else {
+                        req.flash('loginMessage', "Verify failed.  No unverified account listed." );
+                        res.redirect('/login');
+                      }
+                  });
+              }
+              else {
+                req.flash('loginMessage', "Verify failed.  No unverified account listed." );
+                res.redirect('/login');
+              }
+           }
+           else {
+             req.flash('loginMessage', "Verify failed.  No unverified account listed." );
+             res.redirect('/login');
+           }
+        });
+    }
+    else
+    {
+      req.flash('loginMessage', "<h1>Request is from unknown source</h1>" );
+      res.redirect('/login');
     }
   });
 
