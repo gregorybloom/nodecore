@@ -186,7 +186,8 @@ $(document).ready(function(){
       for(i in dat) {
         var tname = "";
         if(typeof dat[i].displayname !== "undefined")   tname = dat[i].displayname;
-        if(typeof dat[i].tempname !== "undefined")      tname = 'Guest ('+dat[i].tempname +')';
+//        if(typeof dat[i].tempname !== "undefined")      tname = 'Guest ('+dat[i].tempname +')';
+        if(typeof dat[i].tempname !== "undefined")      tname = dat[i].tempname;
         if(typeof dat[i].username !== "undefined")      tname = dat[i].username;
 
         var lit = $('<li>');

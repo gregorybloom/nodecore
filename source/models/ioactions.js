@@ -32,8 +32,8 @@ module.exports = function(app, io, basepath, configattr, sessionmanager, appcont
 
 
     var name = "";
-    if(socket.request.user.logged_in == false)      name = "Guest ("+socket.id.substring(0,8)+")"
-    else                                            name = socket.request.user.email.split("@").shift()
+    if(socket.request.user.logged_in == false)      name = socket.id.substring(0,8);
+    else                                            name = socket.request.user.email.split("@").shift();
 
     socket.on('disconnect', function(){
       io.emit('User disconnected: ' + name);
