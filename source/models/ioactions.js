@@ -48,10 +48,11 @@ module.exports = function(app, io, basepath, configattr, sessionmanager, appcont
       }
     });
     socket.on('website-heartbeatreturn', function(msg){
-      if(typeof sessionmanager.socketset[socket.request.sessionID] ==! "undefined") {
-        if(typeof sessionmanager.socketset[socket.request.sessionID][socket.id] ==! "undefined") {
+      if(typeof sessionmanager.socketset[socket.request.sessionID] !== "undefined") {
+        if(typeof sessionmanager.socketset[socket.request.sessionID][socket.id] !== "undefined") {
           var d = new Date();
           sessionmanager.socketset[socket.request.sessionID][socket.id].connectedTime=d.getTime();
+//          console.log('----- beat:',socket.request.sessionID,',',socket.id,'=',d.getTime());
         }
       }
     });

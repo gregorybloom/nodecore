@@ -4,6 +4,7 @@
 //    https://blog.risingstack.com/node-hero-node-js-unit-testing-tutorial/
 
 //    https://stackoverflow.com/questions/39092822/how-to-do-confirm-email-address-with-express-node
+//    https://medium.freecodecamp.org/securing-node-js-restful-apis-with-json-web-tokens-9f811a92bb52
 
 var fs = require('fs');
 var https = require('https');
@@ -74,15 +75,28 @@ configDB['userdb'].db.url = dbUrl;
 
 console.log('dbconnect:  '+configDB['userdb'].db.username+':******@'+configDB['userdb'].db.hostaddr + ':' + configDB['userdb'].db.port + '/' + configDB['userdb'].db.dbname);
 
+
+//  Drop all client sessions on server restart!
+var MongoClient = require('mongodb').MongoClient;
+MongoClient.connect(dbUrl, function(err, db) {
+  if (err) throw err;
+  var dbo = db.db( configDB['userdb'].db.dbname );
+  dbo.collection("sessions").drop(function(err, delOK) {
+    if (err) throw err;
+    if (delOK) console.log("Collection deleted");
+    db.close();
+  });
+});
+
+//  Configure client sessions in DB
 var mongoStore = connectmongo(expSession);
 configSess.store = new mongoStore(configDB['userdb'].db);
 configSess.cookieParser = cookieParser;
 
 
-var confobj = {port:port,loadpaths:loadpaths};
-
-
 mongoose.connect(dbUrl);
+
+var confobj = {port:port,loadpaths:loadpaths};
 //  ===============================================================
 app.use(connectflash()); // use connect-flash for flash messages stored in session
 app.set('view engine', 'ejs'); // set up ejs for templating

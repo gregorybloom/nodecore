@@ -6,7 +6,7 @@ module.exports = {
 	socketset: {},
 	appcontroller: undefined,
 	timeout: (45*1000*60),
-
+	closedtimeout: (1000*60*2),
 
 
 
@@ -33,7 +33,7 @@ module.exports = {
 			if(typeof this.socketset[i] !== "undefined") {
 				for(id in this.socketset[i]) {
 					var deltaTime = d.getTime() - this.socketset[i][id].connectedTime;
-					if(this.socketset[i][id] && deltaTime > 1000*60*2) {
+					if(this.socketset[i][id] && deltaTime > this.closedtimeout) {
 						delete this.socketset[i][id];
 					}
 				}
@@ -53,6 +53,8 @@ module.exports = {
 
 
 		for(i in this.clients) {
+			if(typeof i === "undefined")  console.log('undef!!!');
+			if(typeof i === "undefined")  continue;
       if(this.clients[i] && !this.clients[i].user)    continue;
 
 			var lasttime = this.clients[i].activityTime;
@@ -92,10 +94,19 @@ module.exports = {
 					if(this.socketset[sessionID][id]) {
 						defunct=false;
 						c=c+1;
-//						break;
+						break;
 					}
 				}
-				console.log(i,',',sessionID,'=',c,defunct);
+
+/*			var socketstr="";
+				if(typeof this.socketset[sessionID] !== "undefined") {
+					for(id in this.socketset[sessionID]) {
+						var deltaTime = d.getTime() - this.socketset[sessionID][id].connectedTime;
+						socketstr = socketstr +','+id+'..'+deltaTime;
+					}
+				}
+				console.log(i,',',sessionID,'=',defunct,',activitytimer:',deltatime,'<',this.timeout,', connectedcount:',c,':: ',socketstr,' < ',this.closedtimeout);
+				/**/
 				if(defunct) {
 					this.removeClient(i);
 					continue;
@@ -104,6 +115,7 @@ module.exports = {
 		}
 	},
 	addClient: function (id, user, req) {
+		if(typeof id === "undefined")		return;
     console.log('add client: '+id,',',req.sessionID);
 //		this.clients[id] = {user:user, socketid:req.socket.id, socket:req.socket, sessionID:req.sessionID, drop:false};
 		this.clients[id] = {user:user, sessionID:req.sessionID, drop:false};
