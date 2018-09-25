@@ -1,7 +1,7 @@
 var UserSchema = require('../models/schema/usermodels/user.js');
 
 
-module.exports = function(app, passport, configattr, sessionmanager) {
+module.exports = function(app, passport, configserver, sessionmanager) {
 
   // process the login form
   app.post('/login', passport.authenticate('local-login', {

@@ -1,17 +1,49 @@
 module.exports = {
 
-	registeredapps: {},
-	intervalfns: {},
+		registeredapps: {},
+		intervalfns: {},
 
-	addApp: function (name, app) {
-		this.registeredapps[name] = app;
+		addApp: function (appname, app, appconf, app_path, webapp, io, express, basepath) {
+				this.registeredapps[appname] = {appclass:app};
 
-		if(app.interval && app.intervalFn && app.interval >= 1000) {
-			this.intervalfns[name] = app.intervalFn.bind(app);
-//			setInterval(app.intervalFn.bind(app), app.interval);
-		}
-	}
+				if(app.interval && app.intervalFn && app.interval >= 1000) {
+						this.intervalfns[appname] = app.intervalFn.bind(app);
+				}
+				if(typeof app.addExpressRoutes === "function") {
+						app.addExpressRoutes(appname,appconf,app_path,webapp,express);
+				}
+				this.initializeApp(appname, app, appconf, webapp, io, express, basepath);
+
+				var staticpath = app_path + appconf['paths']['static'];
+		    webapp.use('/apps/static/'+appname, express.static(staticpath) );
+		},
+		initializeApp: function (appname, app, appconf, webapp, io, express, basepath) {
+				if(typeof appconf['dbconf'] !== "undefined") {
 
 
+				}
+
+				var appInstance = this.registeredapps[appname].appclass.alloc();
+				this.registeredapps[appname].instance = appInstance;
+				appInstance.setup(webapp, io, express, basepath);
+		},
+
+
+
+	fetchAppPath: function(appname,basepath,configattr) {
+    if(typeof configattr['apps']['appsconf'][appname] === "undefined")       return null;
+    if(typeof configattr['apps']['appsconf'][appname]['paths'] === "undefined")       return null;
+    var appconf = configattr['apps']['appsconf'][appname];
+
+    var newbasepath = "";
+    if(typeof appconf['fullapp'] !== "undefined" && appconf['fullapp'] == true) {
+      newbasepath = basepath + "/../fullapps/";
+    }
+    else {
+      newbasepath = basepath +"/models/";
+    }
+    var corepath = newbasepath + appconf['paths']['core'];
+    return {corepath:corepath,appconf:appconf,newbasepath:newbasepath};
+  }
 
 };

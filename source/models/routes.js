@@ -1,8 +1,32 @@
 var UserSchema = require('../models/schema/usermodels/user.js');
 
-module.exports = function(app, basepath, configattr, sessionmanager) {
+module.exports = function(app, basepath, configserver, configattr, sessionmanager) {
 
   var FUNCTIONSCLASS=require('../models/functions.js');
+
+  var serveAppView = function(res,appname,basepath,configattr) {
+    if(typeof configattr['apps']['appsconf'][appname] === "undefined") {
+      res.redirect('/404');
+      return;
+    }
+    if(typeof configattr['apps']['appsconf'][appname]['paths'] === "undefined") {
+      res.redirect('/404');
+      return;
+    }
+
+    var confpath = configattr['apps']['appsconf'][appname];
+
+    var newbasepath = basepath;
+    if(typeof confpath['fullapp'] !== "undefined" && confpath['fullapp'] == true) {
+      newbasepath = basepath.match(/^.*nodecore\//g);
+      newbasepath += "fullapps/";
+    }
+    else {
+      newbasepath = basepath +"/";
+    }
+    newbasepath += confpath['paths']['view'];
+    res.sendFile(newbasepath);
+  };
 
   app.all('*', function(req, res, next) {
 
@@ -29,19 +53,24 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
             res.render('index.ejs', {
                 message: req.flash('loginMessage'),
                 domain : "manaofmana.com",
-                servermode : configattr.mode
+                servermode : configserver.mode
             });
         }
         else {
             res.render('index2.ejs', {
                 domain : "manaofmana.com",
-                servermode : configattr.mode
+                servermode : configserver.mode
             });
         }
       }
   );
-  app.get('/chat', function(req, res){
-    res.sendFile(basepath + '/views/pages/chat.html');
+  app.get('/apps/testgame', function(req, res){
+    var appname = 'testgame';
+    serveAppView(res,appname,basepath,configattr);
+  });
+  app.get('/apps/chat', function(req, res){
+    var appname = 'chat';
+    serveAppView(res,appname,basepath,configattr);
   });
   app.get('/login', function(req, res) {
       // render the page and pass in any flash data if it exists
@@ -79,11 +108,13 @@ module.exports = function(app, basepath, configattr, sessionmanager) {
       res.redirect('/');
     }
   });
-
+  app.get('/404', function(req, res) {
+    res.redirect('/');
+  });
 
 
   app.get('/verify',function(req,res){
-      if((req.protocol+"://"+req['hostname'])==("https://"+configattr['hostname']))
+      if((req.protocol+"://"+req['hostname'])==("https://"+configserver['hostname']))
       {
           if(typeof req.query.hash === "undefined" || req.query.hash == null) {
             req.flash('loginMessage', "Verify failed.  No unverified account listed." );

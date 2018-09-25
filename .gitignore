@@ -9,9 +9,30 @@ package.json
 */config/*
 config/*
 
+*/fullapps/*
+*/fullapps
+fullapps/*
+fullapps
+
+*/.git/*
+*/.git
+.git/*
+.git
+
+node_builds
+node_builds/*
+*/node_builds
+*/node_builds/*
+
+node_modules
+node_modules/*
+*/node_modules
+*/node_modules/*
+
 */install/*
 install/*
 
-*/__oldver/*
-__oldver/*
-__oldver
+server_setup
+server_setup/*
+*/server_setup
+*/server_setup/*

@@ -6,6 +6,12 @@
 //    https://stackoverflow.com/questions/39092822/how-to-do-confirm-email-address-with-express-node
 //    https://medium.freecodecamp.org/securing-node-js-restful-apis-with-json-web-tokens-9f811a92bb52
 
+
+//    https://www.toptal.com/nodejs/top-10-common-nodejs-developer-mistakes
+//    https://nodejs.org/en/docs/guides/blocking-vs-non-blocking/
+//    https://technology.amis.nl/2017/05/18/sequential-asynchronous-calls-in-node-js-using-callbacks-async-and-es6-promises/
+//    https://medium.com/dev-bits/writing-neat-asynchronous-node-js-code-with-promises-32ed3a4fd098
+
 var fs = require('fs');
 var https = require('https');
 var path = require('path');
@@ -27,8 +33,8 @@ if( !fs.existsSync(loadpaths['sourcepath']+'/'+loadpaths['configpath']+'/databas
 // initialize ===============================================================
 
 var express  = require('express');
-var app      = express();
-app.set('views', path.join(__dirname, '/views'));
+var webapp      = express();
+webapp.set('views', path.join(__dirname, '/views'));
 
 var SSLpaths = require('./'+loadpaths['configpath']+'/ssl.js');
 var SSLoptions = {
@@ -37,7 +43,7 @@ var SSLoptions = {
 };
 
 
-var httpsServer = https.createServer(SSLoptions, app);
+var httpsServer = https.createServer(SSLoptions, webapp);
 var io       = require('socket.io')(httpsServer);
 var passport = require('passport');
 
@@ -60,8 +66,8 @@ var expSession      = require('express-session');
 var configDB = require('./'+loadpaths['configpath']+'/database.js');
 var configSess = require('./'+loadpaths['configpath']+'/session.js');
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname + '/node_modules'));
+webapp.use(express.static(path.join(__dirname, 'public')));
+webapp.use(express.static(__dirname + '/node_modules'));
 //var UserSchema = mongoose.model('User').schema;
 //console.log('SS',UserSchema);
 
@@ -69,18 +75,18 @@ app.use(express.static(__dirname + '/node_modules'));
 configSess.secret = configDB['userdb'].secret;
 
 var dbUrl = 'mongodb://';
-dbUrl += configDB['userdb'].db.username + ':' + configDB['userdb'].db.password + '@';
-dbUrl += configDB['userdb'].db.hostaddr + ':' + configDB['userdb'].db.port + '/' + configDB['userdb'].db.dbname;
-configDB['userdb'].db.url = dbUrl;
+dbUrl += configDB['userdb'].dbstore.username + ':' + configDB['userdb'].dbstore.password + '@';
+dbUrl += configDB['userdb'].dbstore.hostaddr + ':' + configDB['userdb'].dbstore.port + '/' + configDB['userdb'].dbstore.dbname;
+configDB['userdb'].dbstore.url = dbUrl;
 
-console.log('dbconnect:  '+configDB['userdb'].db.username+':******@'+configDB['userdb'].db.hostaddr + ':' + configDB['userdb'].db.port + '/' + configDB['userdb'].db.dbname);
+console.log('dbconnect:  '+configDB['userdb'].dbstore.username+':******@'+configDB['userdb'].dbstore.hostaddr + ':' + configDB['userdb'].dbstore.port + '/' + configDB['userdb'].dbstore.dbname);
 
 
 //  Drop all client sessions on server restart!
 var MongoClient = require('mongodb').MongoClient;
 MongoClient.connect(dbUrl, function(err, db) {
   if (err) throw err;
-  var dbo = db.db( configDB['userdb'].db.dbname );
+  var dbo = db.db( configDB['userdb'].dbstore.dbname );
   dbo.collection("sessions").drop(function(err, delOK) {
     if (err) throw err;
     if (delOK) console.log("Collection deleted");
@@ -90,7 +96,7 @@ MongoClient.connect(dbUrl, function(err, db) {
 
 //  Configure client sessions in DB
 var mongoStore = connectmongo(expSession);
-configSess.store = new mongoStore(configDB['userdb'].db);
+configSess.store = new mongoStore(configDB['userdb'].dbstore);
 configSess.cookieParser = cookieParser;
 
 
@@ -98,15 +104,15 @@ mongoose.connect(dbUrl);
 
 var confobj = {port:port,loadpaths:loadpaths};
 //  ===============================================================
-app.use(connectflash()); // use connect-flash for flash messages stored in session
-app.set('view engine', 'ejs'); // set up ejs for templating
+webapp.use(connectflash()); // use connect-flash for flash messages stored in session
+webapp.set('view engine', 'ejs'); // set up ejs for templating
 
-app.use(bodyParser.urlencoded({extended: false}));
-app.use(cookieParser()); // read cookies (needed for auth)
-app.use(expSession(configSess));
+webapp.use(bodyParser.urlencoded({extended: false}));
+webapp.use(cookieParser()); // read cookies (needed for auth)
+webapp.use(expSession(configSess));
 
-app.use(passport.initialize());
-app.use(passport.session()); // persistent login sessions
+webapp.use(passport.initialize());
+webapp.use(passport.session()); // persistent login sessions
 
 require('./config/passport')(passport,confobj);
 
@@ -117,12 +123,13 @@ dbsocket.on('error', console.error.bind(console, 'MongoDB connection error:'));
 var authClients = {};
 var clientsByRoom = {};
 
+var configApps = require('./'+loadpaths['configpath']+'/apps.js');
+
 var sessionmanager = require('./models/sessionmanager.js');
 var appcontroller = require('./models/appcontroller.js');
 
-
-require('./models/routes.js')(app, __dirname, {mode:launchMode,hostname:"manaofmana.com"}, sessionmanager); // load our routes and pass in our app and fully configured passport
-require('./models/formactions.js')(app, passport, {'loadpaths':loadpaths}, sessionmanager); // load our routes and pass in our app and fully configured passport
+require('./models/routes.js')(webapp, __dirname, {mode:launchMode,hostname:"manaofmana.com"}, {apps:configApps}, sessionmanager); // load our routes and pass in our app and fully configured passport
+require('./models/formactions.js')(webapp, passport, {'loadpaths':loadpaths}, sessionmanager); // load our routes and pass in our app and fully configured passport
 
 var FUNCTIONSCLASS=require('./models/functions.js'); // load our routes and pass in our app and fully configured passport
 
@@ -140,7 +147,7 @@ io.use(passportSocketIo.authorize({ //configure socket.io
 sessionmanager.appcontroller = appcontroller;
 //setInterval(  sessionmanager.checkClients.bind(sessionmanager), (1000*60*5)  );
 
-require('./models/ioactions.js')(app, io, __dirname, {}, sessionmanager, appcontroller); // load our routes and pass in our app and fully configured passport
+require('./models/ioactions.js')(webapp, express, io, __dirname, {}, {apps:configApps}, sessionmanager, appcontroller); // load our routes and pass in our app and fully configured passport
 
 
 httpsServer.listen(port, function(){

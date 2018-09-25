@@ -44,7 +44,8 @@ module.exports = {
 
 		for(i in this.appcontroller.registeredapps) {
 			var name = i;
-			var app = this.appcontroller.registeredapps[name];
+			var appobj = this.appcontroller.registeredapps[name];
+			var app = this.appcontroller.registeredapps[name].instance;
 			if(app.interval && app.intervalFn && app.interval >= 1000) {
 				app.intervalFn.call(app);
 			}
@@ -61,9 +62,12 @@ module.exports = {
 
 			if(typeof this.appcontroller !== 'undefined') {
 				for(j in this.appcontroller.registeredapps) {
-					if(typeof this.appcontroller.registeredapps[j].clients !== "undefined") {
-						for(k in this.appcontroller.registeredapps[j].clients) {
-							var client = this.appcontroller.registeredapps[j].clients[k];
+
+					var appobj = this.appcontroller.registeredapps[j];
+					var app = this.appcontroller.registeredapps[j].instance;
+					if(typeof this.appcontroller.registeredapps[j].instance.clients !== "undefined") {
+						for(k in this.appcontroller.registeredapps[j].instance.clients) {
+							var client = this.appcontroller.registeredapps[j].instance.clients[k];
 							if(typeof client.userid !== 'undefined' && client.userid == i) {
 								if(typeof client.activityTime !== "undefined") {
 									if(client.activityTime > lasttime)		lasttime = client.activityTime;
@@ -158,16 +162,18 @@ module.exports = {
 	deauthClientFromApps: function(userID,sessionID) {
 		if(typeof this.appcontroller !== 'undefined') {
 			for(j in this.appcontroller.registeredapps) {
-				var subapp = this.appcontroller.registeredapps[j];
+				var appobj = this.appcontroller.registeredapps[j];
+				var subapp = this.appcontroller.registeredapps[j].instance;
+
 				if(typeof subapp.clients !== "undefined") {
 					for(k in subapp.clients) {
 						var client = subapp.clients[k];
 						if(typeof client.userid !== 'undefined' && String(client.userid) == String(userID)) {
-							subapp.deAuthClient(k, subapp.clients[k].socket,subapp.app,subapp.io);
+							subapp.deAuthClient(k, subapp.clients[k].socket);
 						}
 						else if(sessionID != null && typeof sessionID !== "undefined") {
 								if(typeof client.sessionID !== 'undefined' && String(client.sessionID) == String(userID,sessionID)) {
-										subapp.deAuthClient(k, subapp.clients[k].socket,subapp.app,subapp.io);
+										subapp.deAuthClient(k, subapp.clients[k].socket);
 								}
 						}
 
@@ -179,18 +185,19 @@ module.exports = {
   authClientInApps: function(userID,sessionID) {
 		if(typeof this.appcontroller !== 'undefined') {
 			for(j in this.appcontroller.registeredapps) {
-				var subapp = this.appcontroller.registeredapps[j];
+				var appobj = this.appcontroller.registeredapps[j];
+				var subapp = this.appcontroller.registeredapps[j].instance;
 				if(typeof subapp.clients !== "undefined") {
 					for(k in subapp.clients) {
 						var client = subapp.clients[k];
             // CLIENT.USERID doesn't exist!  How should we upauth this?
 						if(typeof client.userid !== 'undefined' && String(client.userid) == String(userID)) {
-							subapp.upAuthClient(k, subapp.clients[k].socket,subapp.app,subapp.io);
+							subapp.upAuthClient(k, subapp.clients[k].socket);
 						}
 						else if(sessionID != null && typeof sessionID !== "undefined") {
 								if(typeof client.sessionID !== 'undefined' && String(client.sessionID) == String(sessionID)) {
 //							** only seems to work for the not-visited app => system creates an app instance per tab, for all apps! **
-										subapp.upAuthClient(k, subapp.clients[k].socket,subapp.app,subapp.io, {user:this.clients[userID].user});
+										subapp.upAuthClient(k, subapp.clients[k].socket, {user:this.clients[userID].user});
 								}
 						}
 					}

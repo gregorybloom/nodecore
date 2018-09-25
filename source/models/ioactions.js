@@ -1,9 +1,19 @@
-module.exports = function(app, io, basepath, configattr, sessionmanager, appcontroller) {
+module.exports = function(webapp, express, io, basepath, configserver, configattr, sessionmanager, appcontroller) {
 
+  appcontroller.registeredapps = {};
+
+  var AppClass = require('./webapps/app_class.js');
+
+  var appset = ['chat','testgame'];
   var appset = ['chat'];
   for(i in appset) {
-    var subapp = require('../models/webapps/'+appset[i]+'.js');
-    appcontroller.addApp(subapp.appname, subapp);
+    var appname = appset[i];
+
+    var confobj = appcontroller.fetchAppPath(appname,basepath,configattr);
+    if(confobj == null)   return;
+
+    var subapp = require(confobj.corepath)(AppClass);
+    appcontroller.addApp(subapp.appname, subapp,confobj.appconf,confobj.newbasepath,webapp,io,express,basepath);
   }
   setInterval(  sessionmanager.checkClients.bind(sessionmanager), (1000*5)  );
 
@@ -11,10 +21,9 @@ module.exports = function(app, io, basepath, configattr, sessionmanager, appcont
   io.sockets.on('connection', function(socket) {
     sessionmanager.checkIfClientMissing(socket.request.user._id, socket.request.user, socket.request);
 
-    var appset = ['chat'];
     for(i in appset) {
-      var subapp = require('../models/webapps/'+appset[i]+'.js');
-      subapp.init(app, io, socket, basepath, null);
+        var subapp = appcontroller.registeredapps[appname].appclass;
+        subapp.initSocket(socket, null);
     }
 
     if(socket.request.user.logged_in == false) {
@@ -42,11 +51,14 @@ module.exports = function(app, io, basepath, configattr, sessionmanager, appcont
       delete sessionmanager.socketset[socket.request.sessionID][socket.id];
 
       for(i in appset) {
-      	var subapp = require('../models/webapps/'+appset[i]+'.js');
-        subapp.end(app, io, socket, null);
+        var confobj = appcontroller.fetchAppPath(appset[i],basepath,configattr);
+        if(confobj == null)   return;
+
+        var subapp = require(confobj.corepath);
+        subapp.endSocket(socket, null);
         //	appcontroller.addApp(express, subapp.appname, subapp);
       }
-    });
+    }.bind(this));
     socket.on('website-heartbeatreturn', function(msg){
       if(typeof sessionmanager.socketset[socket.request.sessionID] !== "undefined") {
         if(typeof sessionmanager.socketset[socket.request.sessionID][socket.id] !== "undefined") {
@@ -56,7 +68,7 @@ module.exports = function(app, io, basepath, configattr, sessionmanager, appcont
         }
       }
     });
-  });
+  }.bind(this));
 
 
 };
