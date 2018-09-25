@@ -12,6 +12,7 @@
 //    https://technology.amis.nl/2017/05/18/sequential-asynchronous-calls-in-node-js-using-callbacks-async-and-es6-promises/
 //    https://medium.com/dev-bits/writing-neat-asynchronous-node-js-code-with-promises-32ed3a4fd098
 
+
 var fs = require('fs');
 var https = require('https');
 var path = require('path');
@@ -33,7 +34,7 @@ if( !fs.existsSync(loadpaths['sourcepath']+'/'+loadpaths['configpath']+'/databas
 // initialize ===============================================================
 
 var express  = require('express');
-var webapp      = express();
+var webapp   = express();
 webapp.set('views', path.join(__dirname, '/views'));
 
 var SSLpaths = require('./'+loadpaths['configpath']+'/ssl.js');
@@ -102,7 +103,6 @@ configSess.cookieParser = cookieParser;
 
 mongoose.connect(dbUrl);
 
-var confobj = {port:port,loadpaths:loadpaths};
 //  ===============================================================
 webapp.use(connectflash()); // use connect-flash for flash messages stored in session
 webapp.set('view engine', 'ejs'); // set up ejs for templating
@@ -114,7 +114,7 @@ webapp.use(expSession(configSess));
 webapp.use(passport.initialize());
 webapp.use(passport.session()); // persistent login sessions
 
-require('./config/passport')(passport,confobj);
+require('./config/passport')(passport, {port:port,loadpaths:loadpaths} );
 
 var dbsocket = mongoose.connection;
 //Bind connection to error event (to get notification of connection errors)
@@ -122,6 +122,19 @@ dbsocket.on('error', console.error.bind(console, 'MongoDB connection error:'));
 //  ===============================================================
 var authClients = {};
 var clientsByRoom = {};
+
+
+
+var FUNCTIONSCLASS=require('./models/functions.js'); // load our routes and pass in our app and fully configured passport
+io.use(passportSocketIo.authorize({ //configure socket.io
+//   cookieParser: cookieParser,
+   secret:      configSess.secret,    // make sure it's the same than the one you gave to express
+   store:       configSess.store,
+   key:         configSess.name,
+   success:     FUNCTIONSCLASS.onAuthorizeSuccess,  // *optional* callback on success
+   fail:        FUNCTIONSCLASS.onAuthorizeFail,     // *optional* callback on fail/error
+}));
+
 
 var configApps = require('./'+loadpaths['configpath']+'/apps.js');
 
@@ -131,17 +144,8 @@ var appcontroller = require('./models/appcontroller.js');
 require('./models/routes.js')(webapp, __dirname, {mode:launchMode,hostname:"manaofmana.com"}, {apps:configApps}, sessionmanager); // load our routes and pass in our app and fully configured passport
 require('./models/formactions.js')(webapp, passport, {'loadpaths':loadpaths}, sessionmanager); // load our routes and pass in our app and fully configured passport
 
-var FUNCTIONSCLASS=require('./models/functions.js'); // load our routes and pass in our app and fully configured passport
 
 
-io.use(passportSocketIo.authorize({ //configure socket.io
-//   cookieParser: cookieParser,
-   secret:      configSess.secret,    // make sure it's the same than the one you gave to express
-   store:       configSess.store,
-   key:         configSess.name,
-   success:     FUNCTIONSCLASS.onAuthorizeSuccess,  // *optional* callback on success
-   fail:        FUNCTIONSCLASS.onAuthorizeFail,     // *optional* callback on fail/error
-}));
 
 //var roomkeeper = require('./app/roomkeeper.js');
 sessionmanager.appcontroller = appcontroller;

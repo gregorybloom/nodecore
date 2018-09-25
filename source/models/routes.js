@@ -4,30 +4,6 @@ module.exports = function(app, basepath, configserver, configattr, sessionmanage
 
   var FUNCTIONSCLASS=require('../models/functions.js');
 
-  var serveAppView = function(res,appname,basepath,configattr) {
-    if(typeof configattr['apps']['appsconf'][appname] === "undefined") {
-      res.redirect('/404');
-      return;
-    }
-    if(typeof configattr['apps']['appsconf'][appname]['paths'] === "undefined") {
-      res.redirect('/404');
-      return;
-    }
-
-    var confpath = configattr['apps']['appsconf'][appname];
-
-    var newbasepath = basepath;
-    if(typeof confpath['fullapp'] !== "undefined" && confpath['fullapp'] == true) {
-      newbasepath = basepath.match(/^.*nodecore\//g);
-      newbasepath += "fullapps/";
-    }
-    else {
-      newbasepath = basepath +"/";
-    }
-    newbasepath += confpath['paths']['view'];
-    res.sendFile(newbasepath);
-  };
-
   app.all('*', function(req, res, next) {
 
       if(req.user && req.isAuthenticated()) {
@@ -66,11 +42,11 @@ module.exports = function(app, basepath, configserver, configattr, sessionmanage
   );
   app.get('/apps/testgame', function(req, res){
     var appname = 'testgame';
-    serveAppView(res,appname,basepath,configattr);
+    sessionmanager.appcontroller.serveAppView(res,appname,configattr);
   });
   app.get('/apps/chat', function(req, res){
     var appname = 'chat';
-    serveAppView(res,appname,basepath,configattr);
+    sessionmanager.appcontroller.serveAppView(res,appname,configattr);
   });
   app.get('/login', function(req, res) {
       // render the page and pass in any flash data if it exists

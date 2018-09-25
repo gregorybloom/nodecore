@@ -2,6 +2,7 @@ module.exports = {
 
 		registeredapps: {},
 		intervalfns: {},
+		corepath: null,
 
 		addApp: function (appname, app, appconf, app_path, webapp, io, express, basepath) {
 				this.registeredapps[appname] = {appclass:app};
@@ -29,21 +30,51 @@ module.exports = {
 		},
 
 
-
-	fetchAppPath: function(appname,basepath,configattr) {
+	fetchAppPath: function(appname,configattr) {
     if(typeof configattr['apps']['appsconf'][appname] === "undefined")       return null;
     if(typeof configattr['apps']['appsconf'][appname]['paths'] === "undefined")       return null;
+
     var appconf = configattr['apps']['appsconf'][appname];
 
-    var newbasepath = "";
-    if(typeof appconf['fullapp'] !== "undefined" && appconf['fullapp'] == true) {
-      newbasepath = basepath + "/../fullapps/";
+		var appbasepath = this.corepath + "/fullapps/";
+
+    if(typeof appconf['private'] !== "undefined" && appconf['private'] == true) {
+			appbasepath += "/privateapps/";
     }
     else {
-      newbasepath = basepath +"/models/";
+			appbasepath += "/publicapps/";
     }
-    var corepath = newbasepath + appconf['paths']['core'];
-    return {corepath:corepath,appconf:appconf,newbasepath:newbasepath};
+		appbasepath += appname+"/";
+
+		appbasepath += "source/";
+
+    var appcorepath = appbasepath + appconf['paths']['core'];
+    return {appcorepath:appcorepath,appconf:appconf,appbasepath:appbasepath};
+  },
+
+
+	serveAppView: function(res,appname,configattr) {
+	    if(typeof configattr['apps']['appsconf'][appname] === "undefined") {
+	      res.redirect('/404');
+	      return;
+	    }
+	    if(typeof configattr['apps']['appsconf'][appname]['paths'] === "undefined") {
+	      res.redirect('/404');
+	      return;
+	    }
+
+	    var confpath = configattr['apps']['appsconf'][appname];
+
+			var newbasepath = "";
+	    var fetchobj = this.fetchAppPath(appname,configattr);
+			if(fetchobj == null)			      res.redirect('/404');
+
+			newbasepath += fetchobj.appbasepath;
+	    newbasepath += confpath['paths']['view'];
+
+			console.log(newbasepath);
+	    res.sendFile(newbasepath);
   }
+
 
 };

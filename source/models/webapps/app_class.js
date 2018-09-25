@@ -142,7 +142,7 @@ AppClass.prototype.initSocket = function(socket, roomkeeper,initcall,discall) {
 
     socket.on(this.appspace+'connection', function(msg) {
         var socketID = socket.id;
-        console.log('connected: ',socketID, ',', socket.request.sessionID);
+        console.log('connected at: ',socketID, ',', socket.request.sessionID);
 
         var client = this.addUser(socketID,socket);
         var defroom = this.getDefaultRoom();

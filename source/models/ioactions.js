@@ -1,6 +1,7 @@
 module.exports = function(webapp, express, io, basepath, configserver, configattr, sessionmanager, appcontroller) {
 
   appcontroller.registeredapps = {};
+  appcontroller.corepath = basepath.match("^(.*\/nodecore\/).*").pop();
 
   var AppClass = require('./webapps/app_class.js');
 
@@ -9,11 +10,11 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
   for(i in appset) {
     var appname = appset[i];
 
-    var confobj = appcontroller.fetchAppPath(appname,basepath,configattr);
+    var confobj = appcontroller.fetchAppPath(appname,configattr);
     if(confobj == null)   return;
 
-    var subapp = require(confobj.corepath)(AppClass);
-    appcontroller.addApp(subapp.appname, subapp,confobj.appconf,confobj.newbasepath,webapp,io,express,basepath);
+    var subapp = require(confobj.appcorepath)(AppClass);
+    appcontroller.addApp(appname, subapp,confobj.appconf,confobj.appbasepath,webapp,io,express,basepath);
   }
   setInterval(  sessionmanager.checkClients.bind(sessionmanager), (1000*5)  );
 
@@ -22,8 +23,8 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
     sessionmanager.checkIfClientMissing(socket.request.user._id, socket.request.user, socket.request);
 
     for(i in appset) {
-        var subapp = appcontroller.registeredapps[appname].appclass;
-        subapp.initSocket(socket, null);
+        var subappinstance = appcontroller.registeredapps[appset[i]].instance;
+        subappinstance.initSocket(socket, null);
     }
 
     if(socket.request.user.logged_in == false) {
@@ -51,11 +52,11 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
       delete sessionmanager.socketset[socket.request.sessionID][socket.id];
 
       for(i in appset) {
-        var confobj = appcontroller.fetchAppPath(appset[i],basepath,configattr);
+        var confobj = appcontroller.fetchAppPath(appset[i],configattr);
         if(confobj == null)   return;
 
-        var subapp = require(confobj.corepath);
-        subapp.endSocket(socket, null);
+        var subappinstance = appcontroller.registeredapps[appset[i]].instance;
+        subappinstance.endSocket(socket, null);
         //	appcontroller.addApp(express, subapp.appname, subapp);
       }
     }.bind(this));

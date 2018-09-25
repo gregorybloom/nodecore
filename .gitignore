@@ -9,10 +9,10 @@ package.json
 */config/*
 config/*
 
-*/fullapps/*
-*/fullapps
-fullapps/*
-fullapps
+*/privateapps/*
+*/privateapps
+privateapps/*
+privateapps
 
 */.git/*
 */.git

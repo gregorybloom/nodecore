@@ -84,13 +84,12 @@ module.exports = function(AppClass){
         }     /**/
     };
     ExpressChatApp.prototype.addUser = function(socketID,socket) {
-        this.clients[socketID].sessionID = socket.request.sessionID;
+        AppClass.prototype.addUser.call(this,socketID,socket);
 
         this.updateClientName(socketID,socket);
         this.clients[socketID].tempname = 'Guest ('+socketID.substring(0,8)+')';
 
 
-        AppClass.prototype.addUser.call(this,socketID,socket);
 
 
         var fetchname = this.getClientName(socketID);
