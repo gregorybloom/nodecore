@@ -87,10 +87,9 @@ module.exports = function(AppClass){
         AppClass.prototype.addUser.call(this,socketID,socket);
 
         this.updateClientName(socketID,socket);
-        this.clients[socketID].tempname = 'Guest ('+socketID.substring(0,8)+')';
-
-
-
+        if (typeof socket.request.user === "undefined") {
+            this.clients[socketID].tempname = 'Guest ('+socketID.substring(0,8)+')';
+        }
 
         var fetchname = this.getClientName(socketID);
         this.sendServerMessage(socketID,socket,null,
@@ -200,8 +199,8 @@ module.exports = function(AppClass){
     };
     ExpressChatApp.prototype.updateClientName = function(socketID,socket) {
         if (typeof socket.request.user !== "undefined") {
-        this.clients[socketID].username = socket.request.user.username;
-        this.clients[socketID].displayname = socket.request.user.displayname;
+            this.clients[socketID].username = socket.request.user.username;
+            this.clients[socketID].displayname = socket.request.user.displayname;
         }
     };
     ExpressChatApp.prototype.deAuthClient = function(socketID, socket) {
@@ -244,7 +243,7 @@ module.exports = function(AppClass){
     ExpressChatApp.prototype.upAuthClient = function(socketID, socket, inputobj) {
         if(inputobj == null || typeof inputobj === "undefined")  inputobj = {};
 
-        var UserSchema = require('../schema/usermodels/user.js');
+        var UserSchema = require(this.basepath+'/models/schema/usermodels/user.js');
         console.log("upauth client:",socketID);
 
         var fetchname1 = this.getClientName(socketID);

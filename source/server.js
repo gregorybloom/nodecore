@@ -28,8 +28,8 @@ var loadpaths = {};
 loadpaths['sourcepath'] = confpaths['paths'][launchMode]['sourcepath'];
 loadpaths['configpath'] = confpaths['paths'][launchMode]['configpath'];
 if( !fs.existsSync(loadpaths['sourcepath']+'/'+loadpaths['configpath']+'/database.js') ) {
-  console.log("conf file not found:",loadpaths['sourcepath']+'/'+loadpaths['configpath']+'/database.js');
-  process.exit(1);
+    console.log("conf file not found:",loadpaths['sourcepath']+'/'+loadpaths['configpath']+'/database.js');
+    process.exit(1);
 }
 // initialize ===============================================================
 

@@ -31,7 +31,7 @@ AppClass.prototype.addUser = function(socketID,socket) {
     this.clients[socketID].socket=socket;
     this.clients[socketID].sessionID = socket.request.sessionID;
 
-    console.log('add user:', socket.request.sessionID, socket.request.user, Object.keys(this.clients[socketID]) );
+    console.log('add user:', socket.request.sessionID, socket.request.user.username,  socket.request.user.email );
 
     if(socket.request.user && socket.request.user._id)      this.clients[socketID].isauthed = true;
     if(this.clients[socketID].isauthed) {
@@ -111,7 +111,6 @@ AppClass.prototype.upAuthClient = function(socketID,socket,inputobj,callback) {
             return;
         }
         if(founduser) {
-            var subapp = ExpressChatApp;
             this.clients[socketID].isauthed = true;
             var roomname = this.clients[socketID].roomname;
 
