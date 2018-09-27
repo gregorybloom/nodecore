@@ -1,7 +1,7 @@
-var UserSchema = require('../models/schema/usermodels/user.js');
 
-module.exports = function(app, basepath, configserver, configattr, sessionmanager) {
+module.exports = function(app, basepath, configserver, configattr, sessionmanager, serverApp) {
 
+  var UserSchema = serverApp.schema.User;
   var FUNCTIONSCLASS=require('../models/functions.js');
 
   app.all('*', function(req, res, next) {

@@ -49,6 +49,12 @@ module.exports = function(AppClass){
         this.usercount = 0;
         this.interval = 3000;
     };
+    ExpressChatApp.prototype.setup = function(webapp,io,express,serverApp,app_pathobj,mongooseDB) {
+        AppClass.prototype.setup.call(this,webapp,io,express,serverApp,app_pathobj,mongooseDB);
+
+        var PostLogSchema = require(this.appsourcepath+'/model/schema/postlog.js')(this.mongooseDB);
+        this.addSchema('PostLog',PostLogSchema);
+    };
 
     ExpressChatApp.prototype.intervalFn = function() {
         AppClass.prototype.intervalFn.call(this);
@@ -58,7 +64,6 @@ module.exports = function(AppClass){
         var obj = {type:'heartbeat'};
         for(sockid in this.clients) {
             this.clients[sockid].socket.emit(this.appspace+'heartbeat', obj);
-            var d = new Date();
             this.checkbeat(sockid);
         }
     };
@@ -172,7 +177,7 @@ module.exports = function(AppClass){
         if(typeof client === "undefined" || client == null)     return;
 
         if(typeof client.tempname == "undefined") {
-        if(!this.clients[socketID].isauthed)              client.tempname = 'Guest ('+socketID.substring(0,8)+')';
+            if(!this.clients[socketID].isauthed)              client.tempname = 'Guest ('+socketID.substring(0,8)+')';
         }
 
 
@@ -243,27 +248,26 @@ module.exports = function(AppClass){
     ExpressChatApp.prototype.upAuthClient = function(socketID, socket, inputobj) {
         if(inputobj == null || typeof inputobj === "undefined")  inputobj = {};
 
-        var UserSchema = require(this.basepath+'/models/schema/usermodels/user.js');
         console.log("upauth client:",socketID);
 
         var fetchname1 = this.getClientName(socketID);
         AppClass.prototype.upAuthClient.call(this,socketID, socket, inputobj, function() {
-        var subapp = ExpressChatApp;
-        var roomname = this.clients[socketID].roomname;
+            var subapp = ExpressChatApp;
+            var roomname = this.clients[socketID].roomname;
 
-        delete this.clients[socketID].tempname;
+            delete this.clients[socketID].tempname;
 
-        var fetchname2 = this.getClientName(socketID);
-        if(fetchname1 !== fetchname2) {
-        this.sendServerMessage(socketID,socket,roomname,
-        "Your user profile has loaded.  Your chat name has been changed to: "+fetchname2,
-        "'"+fetchname1+"' has changed their chat name to: '"+fetchname2+"'.");
-        }
+            var fetchname2 = this.getClientName(socketID);
+            if(fetchname1 !== fetchname2) {
+                this.sendServerMessage(socketID,socket,roomname,
+                "Your user profile has loaded.  Your chat name has been changed to: "+fetchname2,
+                "'"+fetchname1+"' has changed their chat name to: '"+fetchname2+"'.");
+            }
 
-        var nameobj = this.getClientName(socketID,true);
-        socket.emit(this.appspace+'loaded name',nameobj);
+            var nameobj = this.getClientName(socketID,true);
+            socket.emit(this.appspace+'loaded name',nameobj);
 
-        this.sendClientList(socket, roomname);
+            this.sendClientList(socket, roomname);
         }.bind(this));
         if(typeof this.clients[socketID].userid === "undefined")    return;
     };
@@ -283,6 +287,42 @@ module.exports = function(AppClass){
             }
         }
     };
+    ExpressChatApp.prototype.saveChatMessage = function(socketID,packet,ipaddr,socketid,client) {
+        var PostLogSchema = this.schema.PostLog;
+        var newPostLog            = new PostLogSchema();
+
+        if(typeof packet.username !== "undefined")      newPostLog.chatdisplayname = packet.username;
+        else if(typeof packet.displayname !== "undefined") newPostLog.chatdisplayname = packet.displayname;
+        else if(typeof packet.tempname !== "undefined") newPostLog.chatdisplayname = packet.tempname;
+
+
+        if(typeof client.userid !== "undefined") {
+          newPostLog.userID = client.userid;
+        }
+        if(typeof client.user !== "undefined") {
+          if(typeof client.user.username !== "undefined") {
+              newPostLog.username = client.user.username;
+          }
+          if(typeof client.user.username !== "undefined") {
+              newPostLog.email = client.user.email;
+          }
+        }
+        newPostLog.verified = packet.user;
+        newPostLog.post = packet.message;
+        newPostLog.IPaddress = ipaddr;
+        newPostLog.socketID = socketid;
+
+        var d = new Date();
+        newPostLog.time = d.getTime();
+
+        var message = packet.message;
+        newPostLog.save(function(err) {
+            if (err) {
+              console.log('save err',err);
+              throw err;
+            }
+        }.bind(this));
+    };
     ExpressChatApp.prototype.endSocket = function(socket, roomkeeper) {
         if(typeof this.clients[socket.id] === "undefined")  return;
         var roomname = this.clients[socket.id].roomname;
@@ -294,61 +334,60 @@ module.exports = function(AppClass){
         //    AppClass.prototype.init.call(this,socket, roomkeeper);
 
         socket.on(this.appspace+'connection', function(msg) {
+            var socketID = socket.id;
+            console.log('connected: ',socketID, ',', socket.request.sessionID);
 
-        var socketID = socket.id;
-        console.log('connected: ',socketID, ',', socket.request.sessionID);
+            var client = this.addUser(socketID,socket);
 
-        var client = this.addUser(socketID,socket);
+            var domainstr = this.getDomain(socket);
+            var defroom = this.getDefaultRoom(domainstr);
 
-        var domainstr = this.getDomain(socket);
-        var defroom = this.getDefaultRoom(domainstr);
-
-        this.addUserToRoom(socketID,socket,defroom);
-        this.sendClientList(socket, defroom);
+            this.addUserToRoom(socketID,socket,defroom);
+            this.sendClientList(socket, defroom);
         }.bind(this));
         socket.on(this.appspace+'disconnect', function(msg) {
-        var socketID = socket.id;
-        console.log('disconnected: ',socketID, ',', socket.request.sessionID);
+            var socketID = socket.id;
+            console.log('disconnected: ',socketID, ',', socket.request.sessionID);
 
-        var client = this.dropUser(socketID,socket);
-        this.sendClientList(socket, client.roomname);
+            var client = this.dropUser(socketID,socket);
+            this.sendClientList(socket, client.roomname);
         }.bind(this));
         socket.on(this.appspace+'heartbeat', function(msg) {
-        var socketID = socket.id;
+            var socketID = socket.id;
 
-        var d = new Date();
-        this.clients[socketID].activityTime = d.getTime();
-        if( this.clients[socketID].status ) {
-        if( this.clients[socketID].status.dropping )     delete this.clients[socketID].status.dropping;
-        }
+            var d = new Date();
+            this.clients[socketID].activityTime = d.getTime();
+            if( this.clients[socketID].status ) {
+                if( this.clients[socketID].status.dropping )     delete this.clients[socketID].status.dropping;
+            }
 
-        var checkAuth=false;
+            var checkAuth=false;
         }.bind(this));
 
 
         socket.on(this.appspace+'chat message', function(msg) {
-        var socketID = socket.id;
-        if(typeof this.clients[socketID] === "undefined")  return;
+            var socketID = socket.id;
+            if(typeof this.clients[socketID] === "undefined")  return;
 
-        var msgname = this.getClientName(socketID);
-        var user = false;
-        if( typeof this.clients[socketID] !== 'undefined') {
-        if(typeof this.clients[socketID].username !== 'undefined') {
-        if(msgname == this.clients[socketID].username) {
-        user = true;
-        }
-        }
-        }
-        console.log(msgname,user);
+            var msgname = this.getClientName(socketID);
+            var user = false;
+            if( typeof this.clients[socketID] !== 'undefined') {
+                if(typeof this.clients[socketID].username !== 'undefined') {
+                    if(msgname == this.clients[socketID].username) {
+                        user = true;
+                    }
+                }
+            }
 
-        var packet = {};
-        packet.message = msg.message;
-        packet.username = msgname;
-        packet.user = user;
+            var packet = {};
+            packet.message = msg.message;
+            packet.username = msgname;
+            packet.user = user;
 
+            this.saveChatMessage(socketID,packet,socket.handshake.address,socket.id,this.clients[socketID]);
 
-        var roomname = this.clients[socketID].roomname;
-        this.io.in(roomname).emit(this.appspace+'chat message', packet );
+            var roomname = this.clients[socketID].roomname;
+            this.io.in(roomname).emit(this.appspace+'chat message', packet );
 
         }.bind(this));
         socket.on(this.appspace+'change room', function(msg) {

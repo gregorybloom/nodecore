@@ -1,22 +1,37 @@
 function AppClass() {
 }
 AppClass.prototype.init = function() {
-    this.basepath = undefined;
+    this.appbasepath = undefined;
+    this.appsourcepath = undefined;
+
     this.app = undefined;
     this.express = undefined;
     this.io = undefined;
+    this.serverApp = null;
 
     this.appname = null;
     this.appspace = null;
+    this.mongooseDB = null;
+
     this.usercount = 0;
     this.interval = 3000;
     this.clients = {};
+
+    this.schema = {};
 };
-AppClass.prototype.setup = function(webapp,io,express,basepath) {
+AppClass.prototype.setup = function(webapp,io,express,serverApp,app_pathobj,mongooseDB) {
     this.webapp = webapp;
     this.io = io;
     this.express = express;
-    this.basepath = basepath;
+
+    this.appbasepath = app_pathobj.appbasepath;
+    this.appsourcepath = app_pathobj.appsourcepath;
+
+    this.mongooseDB = mongooseDB;
+    this.serverApp = serverApp;
+};
+AppClass.prototype.addSchema = function(name,schema) {
+    this.schema[name] = schema;
 };
 
 AppClass.prototype.intervalFn = function() {
@@ -90,8 +105,8 @@ AppClass.prototype.deAuthClient = function(socketID,socket) {
 };
 AppClass.prototype.upAuthClient = function(socketID,socket,inputobj,callback) {
     if(inputobj == null || typeof inputobj === "undefined")  inputobj = {};
+    if(this.mongooseDB == null)     return;
 
-    var UserSchema = require('../schema/usermodels/user.js');
     console.log("upauth client:",socketID);
 
     if(inputobj['user'] != null && typeof inputobj['user'] !== "undefined")  {
@@ -105,6 +120,7 @@ AppClass.prototype.upAuthClient = function(socketID,socket,inputobj,callback) {
     else if(typeof this.clients[socketID].userid === "undefined")    return;
 
     var userid = this.clients[socketID].userid;
+    var UserSchema = serverApp.schema.User;
     UserSchema.findOne({"_id":userid}, function(err, founduser) {
         if(err) {
             console.log("upauth error:",err);

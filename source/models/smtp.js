@@ -3,7 +3,7 @@ var nodemailer = require("nodemailer");
 module.exports = {
     getSmtpInfo: function(loadpaths) {
 
-      var smtpConf = require('../'+loadpaths['configpath']+'/mail.js');
+      var smtpConf = require(loadpaths['configpath']+'/mail.js');
 
       var smtpTransport = nodemailer.createTransport(
         {
@@ -37,7 +37,7 @@ module.exports = {
          }
          else
          {
-            console.log("Message sent: " + response.message);
+            console.log("Message sent: " + response);
             return true;
          }
        });

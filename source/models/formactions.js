@@ -1,7 +1,7 @@
-var UserSchema = require('../models/schema/usermodels/user.js');
 
 
-module.exports = function(app, passport, configserver, sessionmanager) {
+module.exports = function(app, passport, configserver, sessionmanager, serverApp) {
+  var UserSchema = serverApp.schema.User;
 
   // process the login form
   app.post('/login', passport.authenticate('local-login', {
@@ -27,7 +27,6 @@ module.exports = function(app, passport, configserver, sessionmanager) {
         if(typeof displayname === "undefined")  displayname = req.user.username;
         if(displayname.match(/^\s*$/g))         displayname = req.user.username;
 
-        console.log('display',displayname);
         req.user.displayname = displayname;
 
         UserSchema.update( {'email':req.user.email}, {'displayname':displayname}, function (err, numAffected) {
@@ -44,6 +43,7 @@ module.exports = function(app, passport, configserver, sessionmanager) {
           });
       }
       else if(req.body.change_deleteaccount1=="") {
+          console.log(req.user);
           req.user.remove( function(err) {
               if (err)        throw err;
               console.log('User successfully deleted');

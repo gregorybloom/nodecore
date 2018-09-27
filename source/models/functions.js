@@ -1,7 +1,7 @@
 //    https://www.sitepoint.com/understanding-module-exports-exports-node-js/
 module.exports = {
-    generateActivationEmail: function(req,email,smtpTransport,smtpconf) {
-        var UserSchema = require('schema/usermodels/user');
+    generateActivationEmail: function(req,email,smtpTransport,smtpconf,serverApp) {
+        var UserSchema = serverApp.schema.User;
         UserSchema.findOne({'email':email}, function(err, user) {
               if(err) {
                   req.flash('signupMessage', JSON.stringify(err) );

@@ -1,20 +1,20 @@
-module.exports = function(webapp, express, io, basepath, configserver, configattr, sessionmanager, appcontroller) {
+module.exports = function(webapp, express, io, basepath, configserver, configattr, sessionmanager, appcontroller, serverApp) {
 
   appcontroller.registeredapps = {};
   appcontroller.corepath = basepath.match("^(.*\/nodecore\/).*").pop();
 
   var AppClass = require('./webapps/app_class.js');
 
-  var appset = ['chat','testgame'];
-  var appset = ['chat'];
+  var appset = ['chat','gamelibrary','testgame'];
   for(i in appset) {
-    var appname = appset[i];
+    var app_pathobj = appcontroller.fetchAppPath(appset[i],configattr);
+    if(app_pathobj == null) {
+        console.log("Failed to find app: ",appset[i]);
+        continue;
+    }
 
-    var confobj = appcontroller.fetchAppPath(appname,configattr);
-    if(confobj == null)   return;
-
-    var subapp = require(confobj.appcorepath)(AppClass);
-    appcontroller.addApp(appname, subapp,confobj.appconf,confobj.appbasepath,webapp,io,express,basepath);
+    var subapp = require(app_pathobj.appcorepath)(AppClass);
+    appcontroller.addApp(appset[i], subapp,app_pathobj,webapp,io,express,serverApp);
   }
   setInterval(  sessionmanager.checkClients.bind(sessionmanager), (1000*5)  );
 
@@ -23,6 +23,10 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
     sessionmanager.checkIfClientMissing(socket.request.user._id, socket.request.user, socket.request);
 
     for(i in appset) {
+        if(typeof appcontroller.registeredapps[appset[i]] === "undefined") {
+            console.log("Failed to find app: ",appset[i]);
+            continue;
+        }
         var subappinstance = appcontroller.registeredapps[appset[i]].instance;
         subappinstance.initSocket(socket, null);
     }
@@ -57,7 +61,6 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
 
         var subappinstance = appcontroller.registeredapps[appset[i]].instance;
         subappinstance.endSocket(socket, null);
-        //	appcontroller.addApp(express, subapp.appname, subapp);
       }
     }.bind(this));
     socket.on('website-heartbeatreturn', function(msg){

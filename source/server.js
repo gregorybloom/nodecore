@@ -17,43 +17,95 @@ var fs = require('fs');
 var https = require('https');
 var path = require('path');
 
+var serverAppClass = require('./server_app.js')();
+serverApp = serverAppClass.alloc();
 var launchMode = process.env.LAUNCH || "development";
-
-var confpaths = require('./config/confpaths.js');
-if(typeof confpaths['paths'][launchMode] === "undefined") {
-  console.log("conf mode not found:",launchMode);
-  process.exit(1);
-}
-var loadpaths = {};
-loadpaths['sourcepath'] = confpaths['paths'][launchMode]['sourcepath'];
-loadpaths['configpath'] = confpaths['paths'][launchMode]['configpath'];
-if( !fs.existsSync(loadpaths['sourcepath']+'/'+loadpaths['configpath']+'/database.js') ) {
-    console.log("conf file not found:",loadpaths['sourcepath']+'/'+loadpaths['configpath']+'/database.js');
-    process.exit(1);
-}
-// initialize ===============================================================
 
 var express  = require('express');
 var webapp   = express();
 webapp.set('views', path.join(__dirname, '/views'));
 
-var SSLpaths = require('./'+loadpaths['configpath']+'/ssl.js');
+serverApp.setPath(__dirname);
+serverApp.setMode(launchMode);
+
+// load configuration data ===============================================================
+
+var branchconf = require(serverApp.basepath+'/config/branchconf.js');
+if(typeof branchconf['paths'][launchMode] === "undefined") {
+  console.log("conf mode not found:",launchMode);
+  process.exit(1);
+}
+serverApp.addConfigData('branchconf',branchconf);
+
+
+var loadpaths = {};
+loadpaths['sourcepath'] = serverApp.basepath+'/'+branchconf['paths'][launchMode]['sourcepath'];
+loadpaths['configpath'] = serverApp.basepath+'/config/'+launchMode;
+serverApp.addConfigData('loadpaths',loadpaths);
+
+
+if( !fs.existsSync(loadpaths['configpath']+'/database.js') ) {
+    console.log("conf file not found:",loadpaths['configpath']+'/database.js');
+    process.exit(1);
+}
+var serverconf = require(loadpaths['configpath']+'/serverconf.js');
+var port = serverconf['authserv'].port;
+serverApp.addConfigData('serverconf',serverconf);
+serverApp.setPort('port',port);
+
+
+var SSLpaths = require(loadpaths['configpath']+'/ssl.js');
 var SSLoptions = {
   key: fs.readFileSync(SSLpaths['paths'].key),
   cert: fs.readFileSync(SSLpaths['paths'].cert)
 };
 
 
+// initialize ===============================================================
+
 var httpsServer = https.createServer(SSLoptions, webapp);
 var io       = require('socket.io')(httpsServer);
 var passport = require('passport');
+serverApp.setModules(webapp,io,express);
 
-var servconf = require('./'+loadpaths['configpath']+'/serverconf.js');
 
-//var port     = process.env.PORT || 3314;
-var port = servconf['authserv'].port;
+var configDB = require(loadpaths['configpath']+'/database.js');
+var configSess = require(loadpaths['configpath']+'/session.js');
 
-var mongoose = require('mongoose');
+var dbUrl = 'mongodb://';
+dbUrl += configDB['userdb'].dbstore.username + ':' + configDB['userdb'].dbstore.password + '@';
+dbUrl += configDB['userdb'].dbstore.hostaddr + ':' + configDB['userdb'].dbstore.port + '/' + configDB['userdb'].dbstore.dbname;
+configDB['userdb'].dbstore.url = dbUrl;
+
+
+var mongooseClass = require('mongoose').Mongoose;
+var mainDBsession = new mongooseClass();
+console.log('-1-',dbUrl);
+mainDBsession.connect(dbUrl);
+serverApp.setDB(mongooseClass,mainDBsession);
+
+
+//  Drop all client sessions on server restart!
+var MongoClient = require('mongodb').MongoClient;
+MongoClient.connect(dbUrl, function(err, db) {
+  if (err) throw err;
+  var dbo = db.db( configDB['userdb'].dbstore.dbname );
+  dbo.collection("sessions").drop(function(err, delOK) {
+    if (err) throw err;
+    if (delOK) console.log("Prior Sessions deleted");
+    db.close();
+  });
+});
+
+
+// load Schema ===============================================================
+
+var UserSchema = require(serverApp.serverpath+'/models/schema/usermodels/user.js')(mainDBsession);
+serverApp.addSchema('User',UserSchema);
+
+//  https://stackoverflow.com/questions/19474712/mongoose-and-multiple-database-in-single-node-js-project
+
+//var mongoose = require('mongoose');
 var passportSocketIo = require("passport.socketio");
 var connectflash    = require('connect-flash');
 var connectmongo    = require('connect-mongo');
@@ -64,10 +116,8 @@ var bodyParser   = require('body-parser');
 var expSession      = require('express-session');
 
 
-var configDB = require('./'+loadpaths['configpath']+'/database.js');
-var configSess = require('./'+loadpaths['configpath']+'/session.js');
 
-webapp.use(express.static(path.join(__dirname, 'public')));
+//webapp.use(express.static(path.join(__dirname, 'public')));
 webapp.use(express.static(__dirname + '/node_modules'));
 //var UserSchema = mongoose.model('User').schema;
 //console.log('SS',UserSchema);
@@ -75,25 +125,7 @@ webapp.use(express.static(__dirname + '/node_modules'));
 // configuration ===============================================================
 configSess.secret = configDB['userdb'].secret;
 
-var dbUrl = 'mongodb://';
-dbUrl += configDB['userdb'].dbstore.username + ':' + configDB['userdb'].dbstore.password + '@';
-dbUrl += configDB['userdb'].dbstore.hostaddr + ':' + configDB['userdb'].dbstore.port + '/' + configDB['userdb'].dbstore.dbname;
-configDB['userdb'].dbstore.url = dbUrl;
 
-console.log('dbconnect:  '+configDB['userdb'].dbstore.username+':******@'+configDB['userdb'].dbstore.hostaddr + ':' + configDB['userdb'].dbstore.port + '/' + configDB['userdb'].dbstore.dbname);
-
-
-//  Drop all client sessions on server restart!
-var MongoClient = require('mongodb').MongoClient;
-MongoClient.connect(dbUrl, function(err, db) {
-  if (err) throw err;
-  var dbo = db.db( configDB['userdb'].dbstore.dbname );
-  dbo.collection("sessions").drop(function(err, delOK) {
-    if (err) throw err;
-    if (delOK) console.log("Collection deleted");
-    db.close();
-  });
-});
 
 //  Configure client sessions in DB
 var mongoStore = connectmongo(expSession);
@@ -101,7 +133,7 @@ configSess.store = new mongoStore(configDB['userdb'].dbstore);
 configSess.cookieParser = cookieParser;
 
 
-mongoose.connect(dbUrl);
+//mongoose.connect(dbUrl);
 
 //  ===============================================================
 webapp.use(connectflash()); // use connect-flash for flash messages stored in session
@@ -114,9 +146,10 @@ webapp.use(expSession(configSess));
 webapp.use(passport.initialize());
 webapp.use(passport.session()); // persistent login sessions
 
-require('./config/passport')(passport, {port:port,loadpaths:loadpaths} );
+require(serverApp.serverpath+'/models/passport.js')(passport, serverApp, {port:port,loadpaths:loadpaths} );
 
-var dbsocket = mongoose.connection;
+var dbsocket = mainDBsession.connection;
+//var dbsocket = mongoose.connection;
 //Bind connection to error event (to get notification of connection errors)
 dbsocket.on('error', console.error.bind(console, 'MongoDB connection error:'));
 //  ===============================================================
@@ -136,13 +169,13 @@ io.use(passportSocketIo.authorize({ //configure socket.io
 }));
 
 
-var configApps = require('./'+loadpaths['configpath']+'/apps.js');
+var configApps = require(loadpaths['configpath']+'/apps.js');
 
 var sessionmanager = require('./models/sessionmanager.js');
 var appcontroller = require('./models/appcontroller.js');
 
-require('./models/routes.js')(webapp, __dirname, {mode:launchMode,hostname:"manaofmana.com"}, {apps:configApps}, sessionmanager); // load our routes and pass in our app and fully configured passport
-require('./models/formactions.js')(webapp, passport, {'loadpaths':loadpaths}, sessionmanager); // load our routes and pass in our app and fully configured passport
+require('./models/routes.js')(webapp, __dirname, {mode:launchMode,hostname:"manaofmana.com"}, {apps:configApps}, sessionmanager, serverApp); // load our routes and pass in our app and fully configured passport
+require('./models/formactions.js')(webapp, passport, {'loadpaths':loadpaths}, sessionmanager, serverApp); // load our routes and pass in our app and fully configured passport
 
 
 
@@ -151,7 +184,7 @@ require('./models/formactions.js')(webapp, passport, {'loadpaths':loadpaths}, se
 sessionmanager.appcontroller = appcontroller;
 //setInterval(  sessionmanager.checkClients.bind(sessionmanager), (1000*60*5)  );
 
-require('./models/ioactions.js')(webapp, express, io, __dirname, {}, {apps:configApps}, sessionmanager, appcontroller); // load our routes and pass in our app and fully configured passport
+require('./models/ioactions.js')(webapp, express, io, __dirname, {}, {apps:configApps}, sessionmanager, appcontroller, serverApp); // load our routes and pass in our app and fully configured passport
 
 
 httpsServer.listen(port, function(){
