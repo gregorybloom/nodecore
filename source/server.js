@@ -12,6 +12,8 @@
 //    https://technology.amis.nl/2017/05/18/sequential-asynchronous-calls-in-node-js-using-callbacks-async-and-es6-promises/
 //    https://medium.com/dev-bits/writing-neat-asynchronous-node-js-code-with-promises-32ed3a4fd098
 
+//      force non-forever launch in production mode?
+//    LAUNCH="production" nodejs branches/production/source/server.js
 
 var fs = require('fs');
 var https = require('https');
@@ -80,7 +82,6 @@ configDB['userdb'].dbstore.url = dbUrl;
 
 var mongooseClass = require('mongoose').Mongoose;
 var mainDBsession = new mongooseClass();
-console.log('-1-',dbUrl);
 mainDBsession.connect(dbUrl);
 serverApp.setDB(mongooseClass,mainDBsession);
 

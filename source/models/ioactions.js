@@ -1,3 +1,4 @@
+var fs = require('fs');
 module.exports = function(webapp, express, io, basepath, configserver, configattr, sessionmanager, appcontroller, serverApp) {
 
   appcontroller.registeredapps = {};
@@ -5,16 +6,32 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
 
   var AppClass = require('./webapps/app_class.js');
 
-  var appset = ['chat','gamelibrary','testgame'];
+  var appset = Object.keys(configattr['apps']['appsconf']);
+
   for(i in appset) {
-    var app_pathobj = appcontroller.fetchAppPath(appset[i],configattr);
-    if(app_pathobj == null) {
+    if(typeof configattr['apps']['appsconf'][appset[i]]['active'] === "undefined")  continue;
+    if(configattr['apps']['appsconf'][appset[i]]['active'] == false)              continue;
+
+    var app_loadobj = appcontroller.buildAppPaths(appset[i],serverApp,configattr);
+    if(app_loadobj == null) {
         console.log("Failed to find app: ",appset[i]);
         continue;
     }
+    if( !fs.existsSync(app_loadobj.paths.appcorefilepath) ) {
+      if( !fs.existsSync(app_loadobj.paths.appsourcepath) ) {
+        console.log("app branch not deployed: ",appset[i],serverApp.launchMode,',',app_loadobj.paths.appsourcepath);
+        continue;
+      }
+      else {
+        console.log("core file not found:",app_loadobj.paths.appcorefilepath);
+        process.exit(1);
+      }
+		}
 
-    var subapp = require(app_pathobj.appcorepath)(AppClass);
-    appcontroller.addApp(appset[i], subapp,app_pathobj,webapp,io,express,serverApp);
+    var subappclass = require(app_loadobj.paths.appcorefilepath)(AppClass);
+
+    appcontroller.addApp(appset[i], subappclass,app_loadobj.paths,webapp,io,express,serverApp);
+    appcontroller.initializeApp(appset[i], subappclass, app_loadobj, configattr, webapp, io, express, serverApp);
   }
   setInterval(  sessionmanager.checkClients.bind(sessionmanager), (1000*5)  );
 

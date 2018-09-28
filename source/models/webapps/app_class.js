@@ -17,6 +17,7 @@ AppClass.prototype.init = function() {
     this.interval = 3000;
     this.clients = {};
 
+    this.configdata = {};
     this.schema = {};
 };
 AppClass.prototype.setup = function(webapp,io,express,serverApp,app_pathobj,mongooseDB) {
@@ -32,6 +33,9 @@ AppClass.prototype.setup = function(webapp,io,express,serverApp,app_pathobj,mong
 };
 AppClass.prototype.addSchema = function(name,schema) {
     this.schema[name] = schema;
+};
+AppClass.prototype.addConfigData = function(name,conf) {
+    this.configdata[name] = conf;
 };
 
 AppClass.prototype.intervalFn = function() {

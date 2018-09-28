@@ -2,6 +2,11 @@
 PROGNAME=${0}
 PROGVERSION=0.9.0
 
+if [ $EUID != 0 ]; then
+    sudo "$0" "$@"
+    exit $?
+fi
+
 usage()
 {
   cat << EO
@@ -79,7 +84,6 @@ mname="nodecore_$mode"
 echo "$mname"
 
 forever stop "$mname"
-
-rm ~/.forever/"$mname.log"
+rm -f ~/.forever/"$mname.log"
 
 LAUNCH="$mode" forever start --uid "$mname" "$serverpath/server.js"
