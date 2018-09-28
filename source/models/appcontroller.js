@@ -21,9 +21,19 @@ module.exports = {
 			if(app.interval && app.intervalFn && app.interval >= 1000) {
 					this.intervalfns[appname] = app.intervalFn.bind(app);
 			}
-			if(typeof app.addExpressRoutes === "function") {
-					app.addExpressRoutes(appname,app_loadobj['configs']['appdataconf'],webapp,express);
-			}
+
+			var appdataconf = app.configdata.appdataconf;
+	    if(typeof appdataconf === "undefined") {
+	      res.redirect('/404');
+	      return;
+	    }
+	    if(typeof appdataconf['paths'] === "undefined") {
+	      res.redirect('/404');
+	      return;
+	    }
+
+				app.addExpressRoutes(appname,webapp,express,this);
+
 
 				var mongooseDB = null;
 
@@ -119,12 +129,8 @@ module.exports = {
 		if(typeof app_loadobj['configs']['appconf']['paths']['static'] !== "undefined") {
 			var staticpath = folderpaths['appsourcepath'] + app_loadobj['configs']['appconf']['paths']['static'];
 			folderpaths['staticpath'] = staticpath;
-
-			webapp.use('/apps/'+appname+'/static/', express.static(staticpath) );
 		}
 
-/*
-/**/
 		subapp.addConfigData('folderpaths',folderpaths);
 		subapp.addConfigData('filepaths',filepaths);
 		for(var cname in app_loadobj['configs']) {
@@ -170,6 +176,7 @@ module.exports = {
 	      res.redirect('/404');
 	      return;
 	    }
+
 
 			var sourcepath = this.registeredapps[appname].instance.configdata['folderpaths']['appsourcepath'];
 	    var appviewpath = sourcepath + appdataconf['paths']['view'];

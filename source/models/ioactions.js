@@ -6,8 +6,8 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
 
   var AppClass = require('./webapps/app_class.js');
 
-  var appset = Object.keys(configattr['apps']['appsconf']);
 
+  var appset = Object.keys(configattr['apps']['appsconf']);
   for(i in appset) {
     if(typeof configattr['apps']['appsconf'][appset[i]]['active'] === "undefined")  continue;
     if(configattr['apps']['appsconf'][appset[i]]['active'] == false)              continue;
@@ -39,13 +39,23 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
   io.sockets.on('connection', function(socket) {
     sessionmanager.checkIfClientMissing(socket.request.user._id, socket.request.user, socket.request);
 
-    for(i in appset) {
-        if(typeof appcontroller.registeredapps[appset[i]] === "undefined") {
-            console.log("Failed to find app: ",appset[i]);
-            continue;
+    var URIstr = socket.handshake.headers.referer.match("^https?\:\/\/[^\/]+(\/.*)").pop();
+    if(URIstr.match(/^\/apps\/\w+.*/g)) {
+      var checkname = URIstr.split("/");
+      if(checkname != null && checkname.length > 2) {
+        var uriappname = checkname[2];
+
+        if(typeof appcontroller.registeredapps[uriappname] === "undefined") {
+          console.log("Failed to find app: ",uriappname);
         }
-        var subappinstance = appcontroller.registeredapps[appset[i]].instance;
-        subappinstance.initSocket(socket, null);
+        else if(typeof appcontroller.registeredapps[uriappname].instance === "undefined") {
+          console.log("No instance for app: ",uriappname);
+        }
+        else {
+          var subappinstance = appcontroller.registeredapps[uriappname].instance;
+          subappinstance.initSocket(socket, null);
+        }
+      }
     }
 
     if(socket.request.user.logged_in == false) {
@@ -76,7 +86,10 @@ module.exports = function(webapp, express, io, basepath, configserver, configatt
         var confobj = appcontroller.fetchAppPath(appset[i],configattr);
         if(confobj == null)   return;
 
+        if(typeof appcontroller.registeredapps[appset[i]] === "undefined")   continue;
+        if(typeof appcontroller.registeredapps[appset[i]].instance === "undefined")   continue;
         var subappinstance = appcontroller.registeredapps[appset[i]].instance;
+        console.log('end socket for: ',appset[i],socket.id);
         subappinstance.endSocket(socket, null);
       }
     }.bind(this));

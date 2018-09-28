@@ -40,14 +40,6 @@ module.exports = function(app, basepath, configserver, configattr, sessionmanage
         }
       }
   );
-  app.get('/apps/testgame', function(req, res){
-    var appname = 'testgame';
-    sessionmanager.appcontroller.serveAppView(res,appname,configattr);
-  });
-  app.get('/apps/chat', function(req, res){
-    var appname = 'chat';
-    sessionmanager.appcontroller.serveAppView(res,appname,configattr);
-  });
   app.get('/login', function(req, res) {
       // render the page and pass in any flash data if it exists
       res.render('login.ejs', {

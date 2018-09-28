@@ -37,6 +37,27 @@ AppClass.prototype.addSchema = function(name,schema) {
 AppClass.prototype.addConfigData = function(name,conf) {
     this.configdata[name] = conf;
 };
+AppClass.prototype.handleRouting = function(req,res,appcontroller) {
+  if(typeof this.configdata['appdataconf']['paths']['view'] !== "undefined") {
+    appcontroller.serveAppView(res,this.appname);
+  }
+  else {
+    res.redirect('/404');
+    return;
+  }
+};
+AppClass.prototype.addExpressRoutes = function(appname,webapp,express,appcontroller) {
+  webapp.get('/apps/'+this.appname, function(req, res){
+    this.handleRouting(req,res,appcontroller);
+  }.bind(this));
+  webapp.get('/apps/'+this.appname+'/*', function(req, res){
+    this.handleRouting(req,res,appcontroller);
+  }.bind(this));
+  if(typeof this.configdata.folderpaths['staticpath'] !== "undefined") {
+    var staticpath = this.configdata.folderpaths['staticpath'];
+    webapp.use('/apps/'+this.appname+'/static/', express.static(staticpath) );
+  }
+};
 
 AppClass.prototype.intervalFn = function() {
 };

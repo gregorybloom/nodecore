@@ -44,8 +44,8 @@ module.exports = function(AppClass){
     ExpressChatApp.prototype.init = function() {
         AppClass.prototype.init.call(this);
 
-        this.appname = 'expresschat';
-        this.appspace = 'expresschat-';
+        this.appname = 'chat';
+        this.appspace = 'chat-';
         this.usercount = 0;
         this.interval = 3000;
     };
