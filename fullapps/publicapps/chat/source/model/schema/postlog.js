@@ -32,6 +32,10 @@ module.exports = function(mongooseDB){
           required: true,
           trim: true
         },
+        chatroom     : {
+          type: String,
+          trim: true
+        },
         time     : {
           type: Date,
           required: true,

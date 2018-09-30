@@ -311,6 +311,7 @@ module.exports = function(AppClass){
         newPostLog.post = packet.message;
         newPostLog.IPaddress = ipaddr;
         newPostLog.socketID = socketid;
+        newPostLog.chatroom = client.roomname;
 
         var d = new Date();
         newPostLog.time = d.getTime();

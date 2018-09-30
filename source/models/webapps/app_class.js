@@ -53,9 +53,9 @@ AppClass.prototype.addExpressRoutes = function(appname,webapp,express,appcontrol
   webapp.get('/apps/'+this.appname+'/*', function(req, res){
     this.handleRouting(req,res,appcontroller);
   }.bind(this));
-  if(typeof this.configdata.folderpaths['staticpath'] !== "undefined") {
-    var staticpath = this.configdata.folderpaths['staticpath'];
-    webapp.use('/apps/'+this.appname+'/static/', express.static(staticpath) );
+  if(typeof this.configdata.folderpaths['appstaticpath'] !== "undefined") {
+    var appstaticpath = this.configdata.folderpaths['appstaticpath'];
+    webapp.use('/apps/'+this.appname+'/static/', express.static(appstaticpath) );
   }
 };
 

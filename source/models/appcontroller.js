@@ -125,12 +125,6 @@ module.exports = {
 
 
 
-
-		if(typeof app_loadobj['configs']['appconf']['paths']['static'] !== "undefined") {
-			var staticpath = folderpaths['appsourcepath'] + app_loadobj['configs']['appconf']['paths']['static'];
-			folderpaths['staticpath'] = staticpath;
-		}
-
 		subapp.addConfigData('folderpaths',folderpaths);
 		subapp.addConfigData('filepaths',filepaths);
 		for(var cname in app_loadobj['configs']) {
